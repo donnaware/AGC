@@ -1,0 +1,858 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO1 (file:teco1.asm)
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests basic instructions: TC, CCS, INDEX, XCH, CS, TS, AD, MASK.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          START          EQU      %00            
+                          TCtst          EQU      %01            ; TC check failed
+                          CCStst         EQU      %02            ; CCS check failed
+                          INDEXtst       EQU      %03            ; INDEX check failed
+                          XCHtst         EQU      %04            ; XCH check failed
+                          CStst          EQU      %05            ; CS check failed
+                          TStst          EQU      %06            ; TS check failed
+                          ADtst          EQU      %07            ; AD check failed
+                          MASKtst        EQU      %10            ; MASK check failed
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          PASS           EQU      %12345         ; PASSED all checks
+                          
+                          ; ----------------------------------------------
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          ; ----------------------------------------------
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+00102    0102     00000 1 CCSk           DS       %0             ; CCS test
+00103    0103     00000 1 INDXval        DS       0              ; INDEX test
+                          
+                          ; XCH test
+                          ; pre-set in erasable memory because we don't
+                          ; want to use XCH to initialize them prior to testing XCH.
+00104    0104     00000 1 XCHkP0         DS       +0             
+00105    0105     77777 0 XCHkM0         DS       -0             
+00106    0106     52525 1 XCHkalt1       DS       %52525         ; alternating bit pattern 1
+00107    0107     25252 0 XCHkalt2       DS       %25252         ; alternating bit pattern 2
+                          
+00110    0110     77777 0 TSk            DS       -0             ; TS test
+00111    0111     77777 0 ADk            DS       -0             ; AD test
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         
+02000    2000 0  1,2030 0                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; interrupt service entry points
+                          ; ----------------------------------------------
+                                         ORG      T3RUPT         
+02004    2004 5  0,0026 0                TS       ARUPT          
+02005    2005 3  0,0001 0                XCH      Q              
+02006    2006 5  0,0027 1                TS       QRUPT          
+02007    2007 0  1,2720 0                TC       goT3           
+                          
+                                         ORG      ERRUPT         
+02010    2010 5  0,0026 0                TS       ARUPT          
+02011    2011 3  0,0001 0                XCH      Q              
+02012    2012 5  0,0027 1                TS       QRUPT          
+02013    2013 0  1,2720 0                TC       goER           
+                          
+                                         ORG      DSRUPT         
+02014    2014 5  0,0026 0                TS       ARUPT          
+02015    2015 3  0,0001 0                XCH      Q              
+02016    2016 5  0,0027 1                TS       QRUPT          
+02017    2017 0  1,2720 0                TC       goDS           
+                          
+                                         ORG      KEYRUPT        
+02020    2020 5  0,0026 0                TS       ARUPT          
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0027 1                TS       QRUPT          
+02023    2023 0  1,2720 0                TC       goKEY          
+                          
+                          
+                                         ORG      UPRUPT         
+02024    2024 5  0,0026 0                TS       ARUPT          
+02025    2025 3  0,0001 0                XCH      Q              
+02026    2026 5  0,0027 1                TS       QRUPT          
+02027    2027 0  1,2720 0                TC       goUP           
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          ; MAIN PROGRAM
+                          ; ----------------------------------------------
+                          goMAIN         EQU      *              
+02030    2030 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02031    2031 0  1,2050 0                TCR      begin          
+                          
+                          ; Test basic instructions.
+02032    2032 0  1,2061 1                TCR      chkTC          
+02033    2033 0  1,2115 0                TCR      chkCCS         
+02034    2034 0  1,2251 0                TCR      chkINDEX       
+02035    2035 0  1,2301 1                TCR      chkXCH         
+02036    2036 0  1,2405 1                TCR      chkCS          
+02037    2037 0  1,2453 1                TCR      chkTS          
+02040    2040 0  1,2600 0                TCR      chkAD          
+02041    2041 0  1,2701 0                TCR      chkMASK        
+                          
+                          ; ----------------------------------------------
+                          ; Passed all tests.
+                          ; ----------------------------------------------
+02042    2042 0  1,2054 1                TCR      finish         
+                          passend        EQU      *              
+02043    2043 0  1,2043 1                TC       passend        ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; Failure Exit Point
+                          ; ----------------------------------------------
+                          fail           EQU      *              
+02044    2044 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02045    2045 5  0,0100 0                TS       curtest        
+                          end            EQU      *              
+02046    2046 0  1,2046 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          ; ----------------------------------------------
+02047    2047     00000 1 STRTcode       DS       START          
+                          begin          EQU      *              
+02050    2050 3  1,2047 0                XCH      STRTcode       
+02051    2051 5  0,0100 0                TS       curtest        ; set current test code to START
+02052    2052 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          ; ----------------------------------------------
+02053    2053     12345 0 PASScode       DS       PASS           
+                          finish         EQU      *              
+02054    2054 3  1,2053 0                CAF      PASScode       
+02055    2055 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02056    2056 0  0,0000 0                RETURN                  
+                          ; ----------------------------------------------
+                          
+                          
+                          ; ----------------------------------------------
+                          ; TEST TC INSTRUCTION SUBROUTINE
+                          ; L:	TC	K
+                          ; Verifies the following:
+                          ; - Set C(Q) = TC L+1
+                          ; - Take next instruction from K, and proceed from there.
+                          ; ----------------------------------------------
+02057    2057     00001 0 TCcode         DS       TCtst          ; code for this test
+02060    2060     02066 0 Qtest          DS       TCret1         ; expected return address
+                          chkTC          EQU      *              
+02061    2061 3  0,0001 0                XCH      Q              
+02062    2062 5  0,0101 1                TS       savQ           ; save return address
+                          
+02063    2063 3  1,2057 1                CAF      TCcode         
+02064    2064 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; attempt a jump
+02065    2065 0  1,2067 1                TC       *+2            ; make test jump
+02066    2066 0  1,2044 0 TCret1         TC       fail           ; failed to jump
+                          
+                          ; verify correct return address in Q
+02067    2067 4  0,0001 1                CS       Q              
+02070    2070 6  1,2060 0                AD       Qtest          ; put (-Q) + val2 in A
+02071    2071 1  0,0000 0                CCS      A              ; A = DABS
+02072    2072 0  1,2044 0                TC       fail           ; >0 (Q < Qtest)
+02073    2073 0  1,2044 0                TC       fail           ; +0 (never happens)
+02074    2074 0  1,2044 0                TC       fail           ; <0 (Q > Qtest)
+                          
+                          ; passed the test
+02075    2075 3  0,0101 1                XCH      savQ           
+02076    2076 5  0,0001 0                TS       Q              ; restore return address
+02077    2077 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CCS INSTRUCTION SUBROUTINE
+                          ; L:	CCS	K
+                          ; Verifies the following:
+                          ; - take next instruction from L+n and proceed from there, where:
+                          ; -- n = 1 if C(K) > 0
+                          ; -- n = 2 if C(K) = +0
+                          ; -- n = 3 if C(K) < 0
+                          ; -- n = 4 if C(K) = -0
+                          ; - set C(A) = DABS[C(K)], where DABS (diminished abs value):
+                          ; -- DABS(a) = abs(a) - 1,	if abs(a) > 1
+                          ; -- DABS(a) = +0, 		if abs(a) <= 1
+                          ; ----------------------------------------------
+02100    2100     00002 0 CCScode        DS       CCStst         ; code for this test
+                          ; test values (K)
+02101    2101     77775 1 CCSkM2         DS       -2             
+02102    2102     77776 1 CCSkM1         DS       -1             
+02103    2103     77777 0 CCSkM0         DS       -0             
+02104    2104     00000 1 CCSkP0         DS       +0             
+02105    2105     00001 0 CCSkP1         DS       +1             
+02106    2106     00002 0 CCSkP2         DS       +2             
+                          
+                          ; expected DABS values
+02107    2107     00001 0 CCSdM2         DS       1              ; for K=-2, DABS = +1
+02110    2110     00000 1 CCSdM1         DS       0              ; for K=-1, DABS = +0
+02111    2111     00000 1 CCSdM0         DS       0              ; for K=-0, DABS = +0
+02112    2112     00000 1 CCSdP0         DS       0              ; for K=+0, DABS = +0
+02113    2113     00000 1 CCSdP1         DS       0              ; for K=+1, DABS = +0
+02114    2114     00001 0 CCSdP2         DS       1              ; for K=+2, DABS = +1
+                          
+                          chkCCS         EQU      *              
+02115    2115 3  0,0001 0                XCH      Q              
+02116    2116 5  0,0101 1                TS       savQ           ; save return address
+                          
+02117    2117 3  1,2100 1                CAF      CCScode        
+02120    2120 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; set K to -2 and execute CCS: 
+                          ; check for correct branch
+02121    2121 3  1,2101 0                CAF      CCSkM2         ; set K = -2
+02122    2122 5  0,0102 1                TS       CCSk           
+02123    2123 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02124    2124 0  1,2044 0                TC       fail           ; K > 0
+02125    2125 0  1,2044 0                TC       fail           ; K= +0
+02126    2126 0  1,2130 1                TC       *+2            ; K < 0
+02127    2127 0  1,2044 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=-2, it should be 1)
+02130    2130 4  0,0000 0                COM                     ; 1's compliment of A
+02131    2131 6  1,2107 0                AD       CCSdM2         ; put (-A) + expected value in A
+02132    2132 1  0,0000 0                CCS      A              ; A = DABS
+02133    2133 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02134    2134 0  1,2044 0                TC       fail           ; +0
+02135    2135 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to -1 and execute CCS: 
+                          ; check for correct branch
+02136    2136 3  1,2102 0                CAF      CCSkM1         ; set K = -1
+02137    2137 5  0,0102 1                TS       CCSk           
+02140    2140 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02141    2141 0  1,2044 0                TC       fail           ; K > 0
+02142    2142 0  1,2044 0                TC       fail           ; K= +0
+02143    2143 0  1,2145 0                TC       *+2            ; K < 0
+02144    2144 0  1,2044 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=-1, it should be +0)
+02145    2145 4  0,0000 0                COM                     ; 1's compliment of A
+02146    2146 6  1,2110 0                AD       CCSdM1         ; put (-A) + expected value in A
+02147    2147 1  0,0000 0                CCS      A              ; A = DABS
+02150    2150 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02151    2151 0  1,2044 0                TC       fail           ; +0
+02152    2152 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to -0 and execute CCS: 
+                          ; check for correct branch
+02153    2153 3  1,2103 1                CAF      CCSkM0         ; set K = -0
+02154    2154 5  0,0102 1                TS       CCSk           
+02155    2155 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02156    2156 0  1,2044 0                TC       fail           ; K > 0
+02157    2157 0  1,2044 0                TC       fail           ; K= +0
+02160    2160 0  1,2044 0                TC       fail           ; K < 0
+                          ; check for correct DABS in A (for K=-0, it should be +0)
+02161    2161 4  0,0000 0                COM                     ; 1's compliment of A
+02162    2162 6  1,2111 1                AD       CCSdM0         ; put (-A) + expected value in A
+02163    2163 1  0,0000 0                CCS      A              ; A = DABS
+02164    2164 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02165    2165 0  1,2044 0                TC       fail           ; +0
+02166    2166 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to +0 and execute CCS: 
+                          ; check for correct branch
+02167    2167 3  1,2104 0                CAF      CCSkP0         ; set K = +0
+02170    2170 5  0,0102 1                TS       CCSk           
+02171    2171 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02172    2172 0  1,2044 0                TC       fail           ; K > 0
+02173    2173 0  1,2176 0                TC       *+3            ; K= +0
+02174    2174 0  1,2044 0                TC       fail           ; K < 0
+02175    2175 0  1,2044 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=+0, it should be +0)
+02176    2176 4  0,0000 0                COM                     ; 1's compliment of A
+02177    2177 6  1,2112 1                AD       CCSdP0         ; put (-A) + expected value in A
+02200    2200 1  0,0000 0                CCS      A              ; A = DABS
+02201    2201 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02202    2202 0  1,2044 0                TC       fail           ; +0
+02203    2203 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to +1 and execute CCS: 
+                          ; check for correct branch
+02204    2204 3  1,2105 1                CAF      CCSkP1         ; set K = +1
+02205    2205 5  0,0102 1                TS       CCSk           
+02206    2206 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02207    2207 0  1,2213 0                TC       *+4            ; K > 0
+02210    2210 0  1,2044 0                TC       fail           ; K= +0
+02211    2211 0  1,2044 0                TC       fail           ; K < 0
+02212    2212 0  1,2044 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=+1, it should be +0)
+02213    2213 4  0,0000 0                COM                     ; 1's compliment of A
+02214    2214 6  1,2113 0                AD       CCSdP1         ; put (-A) + expected value in A
+02215    2215 1  0,0000 0                CCS      A              ; A = DABS
+02216    2216 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02217    2217 0  1,2044 0                TC       fail           ; +0
+02220    2220 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to +2 and execute CCS: 
+                          ; check for correct branch
+02221    2221 3  1,2106 1                CAF      CCSkP2         ; set K = +2
+02222    2222 5  0,0102 1                TS       CCSk           
+02223    2223 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02224    2224 0  1,2230 1                TC       *+4            ; K > 0
+02225    2225 0  1,2044 0                TC       fail           ; K= +0
+02226    2226 0  1,2044 0                TC       fail           ; K < 0
+02227    2227 0  1,2044 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=+2, it should be +1)
+02230    2230 4  0,0000 0                COM                     ; 1's compliment of A
+02231    2231 6  1,2114 1                AD       CCSdP2         ; put (-A) + expected value in A
+02232    2232 1  0,0000 0                CCS      A              ; A = DABS
+02233    2233 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02234    2234 0  1,2044 0                TC       fail           ; +0
+02235    2235 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; passed the test
+02236    2236 3  0,0101 1                XCH      savQ           
+02237    2237 5  0,0001 0                TS       Q              ; restore return address
+02240    2240 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST INDEX INSTRUCTION SUBROUTINE
+                          ; L:	INDEX	K	(where K != 0025)
+                          ; Verifies the following;
+                          ; - Use the sum of C(L+1) + C(K) as the next instruction
+                          ; -- just as if that sum had been taken from L+1.
+                          ; ----------------------------------------------
+02241    2241     00003 1 INDXcode       DS       INDEXtst       ; code for this test
+02242    2242     00005 1 INDXst         DS       5              ; somewhere in fixed memory
+                          
+02243    2243     00000 1 INDXbas        DS       0              ; base address for indexing
+02244    2244     00001 0                DS       1              
+02245    2245     00002 0                DS       2              
+02246    2246     00003 1                DS       3              
+02247    2247     00004 0                DS       4              
+02250    2250     00005 1                DS       5              
+                          
+                          chkINDEX       EQU      *              
+02251    2251 3  0,0001 0                XCH      Q              
+02252    2252 5  0,0101 1                TS       savQ           ; save return address
+                          
+02253    2253 3  1,2241 1                CAF      INDXcode       
+02254    2254 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; Decrementing loop
+                          ;	- always executes at least once (tests at end of loop)
+                          ;	- loops 'INDXst+1' times; decrements INDXval
+                          
+02255    2255 3  1,2242 1                XCH      INDXst         ; initialize loop counter
+                          
+                          INDXlop        EQU      *              
+02256    2256 5  0,0103 0                TS       INDXval        
+                          
+                          ; perform indexed CAF of values in INDXbas array;
+                          ; index values range from 5 to 0
+02257    2257 2  0,0103 1                INDEX    INDXval        
+02260    2260 3  1,2243 0                CAF      INDXbas        
+                          
+                          ; verify value retrieved using INDEX matches expected value
+02261    2261 4  0,0000 0                COM                     ; get -A
+02262    2262 6  0,0103 0                AD       INDXval        ; put (-A) + expected value in A
+02263    2263 1  0,0000 0                CCS      A              ; compare
+02264    2264 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02265    2265 0  1,2044 0                TC       fail           ; +0
+02266    2266 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+02267    2267 1  0,0103 1                CCS      INDXval        ; done?
+02270    2270 0  1,2256 1                TC       INDXlop        ; not yet
+                          
+02271    2271 3  0,0101 1                XCH      savQ           
+02272    2272 5  0,0001 0                TS       Q              ; restore return address
+02273    2273 0  0,0000 0                RETURN                  
+                          ; ----------------------------------------------
+                          ; TEST XCH INSTRUCTION SUBROUTINE
+                          ; L:	XCH	K
+                          ; Verifies the following:
+                          ; - set C(A) = b(K)
+                          ; - set C(K) = b(A)
+                          ; - take next instruction from L+1
+                          ; ----------------------------------------------
+02274    2274     00004 0 XCHcode        DS       XCHtst         ; code for this test
+                          ; XCH test values
+02275    2275     00000 1 XCHfP0         DS       +0             
+02276    2276     77777 0 XCHfM0         DS       -0             
+02277    2277     52525 1 XCHfalt1       DS       %52525         ; alternating bit pattern 1
+02300    2300     25252 0 XCHfalt2       DS       %25252         ; alternating bit pattern 2
+                          
+                          chkXCH         EQU      *              
+02301    2301 3  0,0001 0                XCH      Q              
+02302    2302 5  0,0101 1                TS       savQ           ; save return address
+                          
+02303    2303 3  1,2274 1                CAF      XCHcode        
+02304    2304 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; test - initial conditions: K=+0, A=-0
+                          ; initialize A
+02305    2305 4  1,2275 1                CS       XCHfP0         
+                          ; exchange A and K
+02306    2306 3  0,0104 1                XCH      XCHkP0         
+                          ; test contents of A for expected value
+02307    2307 4  0,0000 0                COM                     ; get -A
+02310    2310 6  1,2275 0                AD       XCHfP0         ; put (-A) + expected value in A
+02311    2311 1  0,0000 0                CCS      A              ; A = DABS
+02312    2312 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02313    2313 0  1,2044 0                TC       fail           ; +0
+02314    2314 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; test contents of K for expected value
+02315    2315 4  0,0104 0                CS       XCHkP0         ; get -A
+02316    2316 6  1,2276 0                AD       XCHfM0         ; put (-A) + expected value in A
+02317    2317 1  0,0000 0                CCS      A              ; A = DABS
+02320    2320 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02321    2321 0  1,2044 0                TC       fail           ; +0
+02322    2322 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; test - initial conditions: K=-0, A=+0
+                          ; initialize A
+02323    2323 4  1,2276 1                CS       XCHfM0         
+                          ; exchange A and K
+02324    2324 3  0,0105 0                XCH      XCHkM0         
+                          ; test contents of A for expected value
+02325    2325 4  0,0000 0                COM                     ; get -A
+02326    2326 6  1,2276 0                AD       XCHfM0         ; put (-A) + expected value in A
+02327    2327 1  0,0000 0                CCS      A              ; A = DABS
+02330    2330 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02331    2331 0  1,2044 0                TC       fail           ; +0
+02332    2332 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; test contents of K for expected value
+02333    2333 4  0,0105 1                CS       XCHkM0         ; get -A
+02334    2334 6  1,2275 0                AD       XCHfP0         ; put (-A) + expected value in A
+02335    2335 1  0,0000 0                CCS      A              ; A = DABS
+02336    2336 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02337    2337 0  1,2044 0                TC       fail           ; +0
+02340    2340 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; test - initial conditions: K=52525, A=25252
+                          ; initialize A
+02341    2341 4  1,2277 0                CS       XCHfalt1       
+                          ; exchange A and K
+02342    2342 3  0,0106 0                XCH      XCHkalt1       
+                          ; test contents of A for expected value
+02343    2343 4  0,0000 0                COM                     ; get -A
+02344    2344 6  1,2277 1                AD       XCHfalt1       ; put (-A) + expected value in A
+02345    2345 1  0,0000 0                CCS      A              ; A = DABS
+02346    2346 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02347    2347 0  1,2044 0                TC       fail           ; +0
+02350    2350 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; test contents of K for expected value
+02351    2351 4  0,0106 1                CS       XCHkalt1       ; get -A
+02352    2352 6  1,2300 0                AD       XCHfalt2       ; put (-A) + expected value in A
+02353    2353 1  0,0000 0                CCS      A              ; A = DABS
+02354    2354 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02355    2355 0  1,2044 0                TC       fail           ; +0
+02356    2356 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; test - initial conditions: K=25252, A=52525
+                          ; initialize A
+02357    2357 4  1,2300 1                CS       XCHfalt2       
+                          ; exchange A and K
+02360    2360 3  0,0107 1                XCH      XCHkalt2       
+                          ; test contents of A for expected value
+02361    2361 4  0,0000 0                COM                     ; get -A
+02362    2362 6  1,2300 0                AD       XCHfalt2       ; put (-A) + expected value in A
+02363    2363 1  0,0000 0                CCS      A              ; A = DABS
+02364    2364 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02365    2365 0  1,2044 0                TC       fail           ; +0
+02366    2366 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; test contents of K for expected value
+02367    2367 4  0,0107 0                CS       XCHkalt2       ; get -A
+02370    2370 6  1,2277 1                AD       XCHfalt1       ; put (-A) + expected value in A
+02371    2371 1  0,0000 0                CCS      A              ; A = DABS
+02372    2372 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02373    2373 0  1,2044 0                TC       fail           ; +0
+02374    2374 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; passed the test
+02375    2375 3  0,0101 1                XCH      savQ           
+02376    2376 5  0,0001 0                TS       Q              ; restore return address
+02377    2377 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CS INSTRUCTION SUBROUTINE
+                          ; L:	CS	K
+                          ; Verifies the following:
+                          ; - Set C(A) = -C(K)
+                          ; - Take next instruction from L+1
+                          ; ----------------------------------------------
+02400    2400     00005 1 CScode         DS       CStst          ; code for this test
+                          ; test values (K)
+02401    2401     00000 1 CSkP0          DS       +0             
+02402    2402     77777 0 CSkM0          DS       -0             
+02403    2403     52525 1 CSkalt1        DS       %52525         ; 1's C of CSkalt2
+02404    2404     25252 0 CSkalt2        DS       %25252         ; 1's C of CSkalt1
+                          
+                          chkCS          EQU      *              
+02405    2405 3  0,0001 0                XCH      Q              
+02406    2406 5  0,0101 1                TS       savQ           ; save return address
+                          
+02407    2407 3  1,2400 1                CAF      CScode         
+02410    2410 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; clear and subtract +0
+02411    2411 4  1,2401 1                CS       CSkP0          ; load 1's compliment of K into A
+02412    2412 6  1,2401 0                AD       CSkP0          ; put (-A) + expected value in A
+02413    2413 1  0,0000 0                CCS      A              ; compare
+02414    2414 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02415    2415 0  1,2044 0                TC       fail           ; +0
+02416    2416 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; clear and subtract -0
+02417    2417 4  1,2402 1                CS       CSkM0          ; load 1's compliment of K into A
+02420    2420 6  1,2402 0                AD       CSkM0          ; put (-A) + expected value in A
+02421    2421 1  0,0000 0                CCS      A              ; compare
+02422    2422 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02423    2423 0  1,2044 0                TC       fail           ; +0
+02424    2424 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; clear and subtract alternating bit pattern %52525
+02425    2425 4  1,2403 0                CS       CSkalt1        ; load 1's compliment of K into A
+02426    2426 6  1,2403 1                AD       CSkalt1        ; put (-A) + expected value in A
+02427    2427 1  0,0000 0                CCS      A              ; compare
+02430    2430 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02431    2431 0  1,2044 0                TC       fail           ; +0
+02432    2432 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; clear and subtract alternating bit pattern %25252
+02433    2433 4  1,2404 1                CS       CSkalt2        ; load 1's compliment of K into A
+02434    2434 6  1,2404 0                AD       CSkalt2        ; put (-A) + expected value in A
+02435    2435 1  0,0000 0                CCS      A              ; compare
+02436    2436 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02437    2437 0  1,2044 0                TC       fail           ; +0
+02440    2440 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; passed the test
+02441    2441 3  0,0101 1                XCH      savQ           
+02442    2442 5  0,0001 0                TS       Q              ; restore return address
+02443    2443 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST TS INSTRUCTION SUBROUTINE
+                          ; L;	TS 	K
+                          ; Verifies the following:
+                          ; - Set C(K) = b(A)
+                          ; - If b(A) contains no overflow, 
+                          ; -- C(A) = b(A); take next instruction from L+1
+                          ; - If b(A) has positive overflow, C(A) = 000001; 
+                          ; -- take next instruction from L+2
+                          ; - If b(A) has negative overflow, C(A) = 177776; 
+                          ; -- take next instruction from L+2
+                          ; ----------------------------------------------
+02444    2444     00006 1 TScode         DS       TStst          ; code for this test
+02445    2445     00001 0 TSone          DS       +1             
+02446    2446     00000 1 TSzero         DS       +0             
+02447    2447     77777 0 TSmzero        DS       -0             
+02450    2450     77776 1 TSmone         DS       -1             
+02451    2451     37777 1 TSkP1          DS       %37777         ; TEST1: largest positive number w/no overflow
+02452    2452     40000 0 TSkM1          DS       %40000         ; TEST2: largest negative number w/no overflow
+                          
+                          chkTS          EQU      *              
+02453    2453 3  0,0001 0                XCH      Q              
+02454    2454 5  0,0101 1                TS       savQ           ; save return address
+                          
+02455    2455 3  1,2444 1                CAF      TScode         
+02456    2456 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; initialize TSk to -0
+02457    2457 3  1,2447 1                CAF      TSmzero        
+02460    2460 3  0,0110 1                XCH      TSk            
+                          
+                          ; TEST 1: store positive number, no overflow
+02461    2461 3  1,2451 0                CAF      TSkP1          
+02462    2462 5  0,0110 1                TS       TSk            
+02463    2463 0  1,2465 1                TC       *+2            ; no overflow
+02464    2464 0  1,2044 0                TC       fail           ; overflow
+                          ; verify C(A) = b(A)
+02465    2465 4  0,0000 0                COM                     ; get -A
+02466    2466 6  1,2451 0                AD       TSkP1          ; put (-A) + expected value in A
+02467    2467 1  0,0000 0                CCS      A              ; compare
+02470    2470 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02471    2471 0  1,2044 0                TC       fail           ; +0
+02472    2472 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = b(A)
+02473    2473 4  1,2451 1                CS       TSkP1          ; get -expected value
+02474    2474 6  0,0110 1                AD       TSk            ; put (-expected value) + C(K) into A
+02475    2475 1  0,0000 0                CCS      A              ; compare
+02476    2476 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02477    2477 0  1,2044 0                TC       fail           ; +0
+02500    2500 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST 2: store negative number, no overflow
+02501    2501 3  1,2452 0                CAF      TSkM1          
+02502    2502 5  0,0110 1                TS       TSk            
+02503    2503 0  1,2505 0                TC       *+2            ; no overflow
+02504    2504 0  1,2044 0                TC       fail           ; overflow
+                          ; verify C(A) = b(A)
+02505    2505 4  0,0000 0                COM                     ; get -A
+02506    2506 6  1,2452 0                AD       TSkM1          ; put (-A) + expected value in A
+02507    2507 1  0,0000 0                CCS      A              ; compare
+02510    2510 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02511    2511 0  1,2044 0                TC       fail           ; +0
+02512    2512 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = b(A)
+02513    2513 4  1,2452 1                CS       TSkM1          ; get -expected value
+02514    2514 6  0,0110 1                AD       TSk            ; put (-expected value) + C(K) into A
+02515    2515 1  0,0000 0                CCS      A              ; compare
+02516    2516 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02517    2517 0  1,2044 0                TC       fail           ; +0
+02520    2520 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST 3: store positive number, overflow
+02521    2521 3  1,2451 0                CAF      TSkP1          ; get largest positive number
+02522    2522 6  1,2445 0                AD       TSone          ; make it overflow; A = negative overflow
+02523    2523 5  0,0110 1                TS       TSk            ; store the positive overflow
+02524    2524 0  1,2044 0                TC       fail           ; no overflow
+                          ; verify C(A) = 000001
+02525    2525 4  0,0000 0                COM                     ; get -A
+02526    2526 6  1,2445 0                AD       TSone          ; put (-A) + expected value in A
+02527    2527 1  0,0000 0                CCS      A              ; compare
+02530    2530 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02531    2531 0  1,2044 0                TC       fail           ; +0
+02532    2532 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = positive overflow
+02533    2533 4  1,2446 1                CS       TSzero         ; get -expected value
+02534    2534 6  0,0110 1                AD       TSk            ; put (-expected value) + C(K) into A
+02535    2535 1  0,0000 0                CCS      A              ; compare
+02536    2536 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02537    2537 0  1,2044 0                TC       fail           ; +0
+02540    2540 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST 4: store negative number, overflow
+02541    2541 3  1,2452 0                CAF      TSkM1          ; get largest negative number
+02542    2542 6  1,2450 1                AD       TSmone         ; make it overflow; A = negative overflow
+02543    2543 5  0,0110 1                TS       TSk            ; store the negative overflow
+02544    2544 0  1,2044 0                TC       fail           ; no overflow
+                          ; verify C(A) = 177776
+02545    2545 4  0,0000 0                COM                     ; get -A
+02546    2546 6  1,2450 1                AD       TSmone         ; put (-A) + expected value in A
+02547    2547 1  0,0000 0                CCS      A              ; compare
+02550    2550 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02551    2551 0  1,2044 0                TC       fail           ; +0
+02552    2552 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = negative overflow
+02553    2553 4  1,2447 0                CS       TSmzero        ; get -expected value
+02554    2554 6  0,0110 1                AD       TSk            ; put (-expected value) + C(K) into A
+02555    2555 1  0,0000 0                CCS      A              ; compare
+02556    2556 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02557    2557 0  1,2044 0                TC       fail           ; +0
+02560    2560 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+02561    2561 3  0,0101 1                XCH      savQ           
+02562    2562 5  0,0001 0                TS       Q              ; restore return address
+02563    2563 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST AD INSTRUCTION SUBROUTINE
+                          ; L:	AD	K
+                          ; Verifies the following:
+                          ; - Set C(A) = b(A) + C(K)
+                          ; - Take next instruction from L+1
+                          ; - if C(A) has positive overflow,
+                          ; -- increment overflow counter by 1
+                          ; - if C(A) has negative overflow,
+                          ; -- decrement overflow counter by 1
+                          ; ----------------------------------------------
+02564    2564     00007 0 ADcode         DS       ADtst          ; code for this test
+02565    2565     00000 1 ADplus0        DS       +0             
+02566    2566     00001 0 ADplus1        DS       1              
+02567    2567     77776 1 ADmin1         DS       -1             
+                          
+02570    2570     25252 0 AD25252        DS       %25252         ; +10922 decimal
+02571    2571     12525 0 AD12525        DS       %12525         ; +5461 decimal
+02572    2572     37777 1 AD37777        DS       %37777         ; largest positive number
+02573    2573     12524 1 AD12524        DS       %12524         ; positive overflow of %25252+%25252
+                          
+02574    2574     52525 1 AD52525        DS       %52525         ; -10922 decimal
+02575    2575     65252 1 AD65252        DS       %65252         ; -5461 decimal
+02576    2576     40000 0 AD40000        DS       %40000         ; largest negative number
+02577    2577     65253 0 AD65253        DS       %65253         ; negative overflow of %52525+65252
+                          
+                          chkAD          EQU      *              
+02600    2600 3  0,0001 0                XCH      Q              
+02601    2601 5  0,0101 1                TS       savQ           ; save return address
+                          
+02602    2602 3  1,2564 1                CAF      ADcode         
+02603    2603 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; TEST1: sum positive, no overflow
+                          ; add: %25252 + %12525 = %37777 (sign + 14 magnitude)
+02604    2604 3  1,2570 1                CAF      AD25252        
+02605    2605 6  1,2571 0                AD       AD12525        
+                          ; verify C(A) = %37777
+02606    2606 4  0,0000 0                COM                     ; get -A
+02607    2607 6  1,2572 0                AD       AD37777        ; put (-A) + expected value in A
+02610    2610 1  0,0000 0                CCS      A              ; compare
+02611    2611 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02612    2612 0  1,2044 0                TC       fail           ; +0
+02613    2613 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST2: sum negative, no overflow (sign + 14 magnitude)
+                          ; add: %52525 + %65252 = %40000
+02614    2614 3  1,2574 0                CAF      AD52525        
+02615    2615 6  1,2575 1                AD       AD65252        
+                          ; verify C(A) = %40000
+02616    2616 4  0,0000 0                COM                     ; get -A
+02617    2617 6  1,2576 1                AD       AD40000        ; put (-A) + expected value in A
+02620    2620 1  0,0000 0                CCS      A              ; compare
+02621    2621 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02622    2622 0  1,2044 0                TC       fail           ; +0
+02623    2623 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST3: sum positive, overflow
+                          ; initialize overflow counter and positive overflow storage
+02624    2624 3  1,2565 0                CAF      ADplus0        
+02625    2625 5  0,0034 0                TS       OVFCNTR        
+02626    2626 5  0,0111 0                TS       ADk            
+                          ; add: %25252 + %25252 = %52524 (sign + 14 magnitude)
+02627    2627 3  1,2570 1                CAF      AD25252        
+02630    2630 6  1,2570 1                AD       AD25252        
+02631    2631 5  0,0111 0                TS       ADk            ; store positive overflow
+02632    2632 0  1,2044 0                TC       fail           
+                          ; verify ADk = %12524
+02633    2633 4  0,0111 1                CS       ADk            ; get -A
+02634    2634 6  1,2573 1                AD       AD12524        ; put (-A) + expected value in A
+02635    2635 1  0,0000 0                CCS      A              ; compare
+02636    2636 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02637    2637 0  1,2044 0                TC       fail           ; +0
+02640    2640 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; verify overflow counter =%00001
+02641    2641 4  0,0034 1                CS       OVFCNTR        ; get -A
+02642    2642 6  1,2566 0                AD       ADplus1        ; put (-A) + expected value in A
+02643    2643 1  0,0000 0                CCS      A              ; compare
+02644    2644 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02645    2645 0  1,2044 0                TC       fail           ; +0
+02646    2646 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST4: sum negative, overflow
+02647    2647 3  1,2565 0                CAF      ADplus0        
+02650    2650 5  0,0034 0                TS       OVFCNTR        
+02651    2651 5  0,0111 0                TS       ADk            
+                          ; add: %52525 + %52525 = %25253 (sign + 14 magnitude)
+02652    2652 3  1,2574 0                CAF      AD52525        
+02653    2653 6  1,2574 0                AD       AD52525        
+02654    2654 5  0,0111 0                TS       ADk            ; store negative overflow
+02655    2655 0  1,2044 0                TC       fail           
+                          ; verify ADk = %65253
+02656    2656 4  0,0111 1                CS       ADk            ; get -A
+02657    2657 6  1,2577 0                AD       AD65253        ; put (-A) + expected value in A
+02660    2660 1  0,0000 0                CCS      A              ; compare
+02661    2661 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02662    2662 0  1,2044 0                TC       fail           ; +0
+02663    2663 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          ; verify overflow counter =%77776
+02664    2664 4  0,0034 1                CS       OVFCNTR        ; get -A
+02665    2665 6  1,2567 1                AD       ADmin1         ; put (-A) + expected value in A
+02666    2666 1  0,0000 0                CCS      A              ; compare
+02667    2667 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02670    2670 0  1,2044 0                TC       fail           ; +0
+02671    2671 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+02672    2672 3  0,0101 1                XCH      savQ           
+02673    2673 5  0,0001 0                TS       Q              ; restore return address
+02674    2674 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST MASK INSTRUCTION SUBROUTINE
+                          ; L:	MASK	K
+                          ; Verifies the following:
+                          ; - Set C(A) = b(A) & C(K)
+                          ; ----------------------------------------------
+02675    2675     00010 0 MASKcode       DS       MASKtst        ; code for this test
+02676    2676     46314 0 MASK1          DS       %46314         
+02677    2677     25252 0 MASK2          DS       %25252         
+02700    2700     04210 0 MASKval        DS       %04210         ; expected result of MASK1 & MASK2
+                          
+                          chkMASK        EQU      *              
+02701    2701 3  0,0001 0                XCH      Q              
+02702    2702 5  0,0101 1                TS       savQ           ; save return address
+                          
+02703    2703 3  1,2675 1                CAF      MASKcode       
+02704    2704 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; perform logical and of MASK1 and MASK2
+02705    2705 3  1,2676 1                CAF      MASK1          
+02706    2706 7  1,2677 1                MASK     MASK2          
+                          
+                          ; verify C(A) = b(A) & C(K)
+02707    2707 4  0,0000 0                COM                     ; get -A
+02710    2710 6  1,2700 1                AD       MASKval        ; put (-A) + expected value in A
+02711    2711 1  0,0000 0                CCS      A              ; compare
+02712    2712 0  1,2044 0                TC       fail           ; >0 (A < expected value)
+02713    2713 0  1,2044 0                TC       fail           ; +0
+02714    2714 0  1,2044 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; passed the test
+02715    2715 3  0,0101 1                XCH      savQ           
+02716    2716 5  0,0001 0                TS       Q              ; restore return address
+02717    2717 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; INTERRUPT SERVICE ROUTINE
+                          ; ----------------------------------------------
+                          goT3           EQU      *              
+                          goER           EQU      *              
+                          goDS           EQU      *              
+                          goKEY          EQU      *              
+                          goUP           EQU      *              
+                          endRUPT        EQU      *              
+02720    2720 3  0,0027 1                XCH      QRUPT          ; restore Q
+02721    2721 5  0,0001 0                TS       Q              
+02722    2722 3  0,0026 0                XCH      ARUPT          ; restore A
+02723    2723 2  0,0000 1                RESUME                  ; finished, go back
+                          
+                          ; ----------------------------------------------
+                          ; END OF PROGRAM
+                          ; ----------------------------------------------
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   TCtst          000001   CCStst         000002   
+INDEXtst       000003   XCHtst         000004   CStst          000005   
+TStst          000006   ADtst          000007   MASKtst        000010   
+OVFCNTR        000034   PASS           012345   EXTENDER       005777   
+curtest        000100   savQ           000101   CCSk           000102   
+INDXval        000103   XCHkP0         000104   XCHkM0         000105   
+XCHkalt1       000106   XCHkalt2       000107   TSk            000110   
+ADk            000111   GOPROG         002000   T3RUPT         002004   
+ERRUPT         002010   DSRUPT         002014   KEYRUPT        002020   
+UPRUPT         002024   goMAIN         002030   passend        002043   
+fail           002044   end            002046   STRTcode       002047   
+begin          002050   PASScode       002053   finish         002054   
+TCcode         002057   Qtest          002060   chkTC          002061   
+TCret1         002066   CCScode        002100   CCSkM2         002101   
+CCSkM1         002102   CCSkM0         002103   CCSkP0         002104   
+CCSkP1         002105   CCSkP2         002106   CCSdM2         002107   
+CCSdM1         002110   CCSdM0         002111   CCSdP0         002112   
+CCSdP1         002113   CCSdP2         002114   chkCCS         002115   
+INDXcode       002241   INDXst         002242   INDXbas        002243   
+chkINDEX       002251   INDXlop        002256   XCHcode        002274   
+XCHfP0         002275   XCHfM0         002276   XCHfalt1       002277   
+XCHfalt2       002300   chkXCH         002301   CScode         002400   
+CSkP0          002401   CSkM0          002402   CSkalt1        002403   
+CSkalt2        002404   chkCS          002405   TScode         002444   
+TSone          002445   TSzero         002446   TSmzero        002447   
+TSmone         002450   TSkP1          002451   TSkM1          002452   
+chkTS          002453   ADcode         002564   ADplus0        002565   
+ADplus1        002566   ADmin1         002567   AD25252        002570   
+AD12525        002571   AD37777        002572   AD12524        002573   
+AD52525        002574   AD65252        002575   AD40000        002576   
+AD65253        002577   chkAD          002600   MASKcode       002675   
+MASK1          002676   MASK2          002677   MASKval        002700   
+chkMASK        002701   goT3           002720   goER           002720   
+goDS           002720   goKEY          002720   goUP           002720   
+endRUPT        002720   ARUPT          000026   Q              000001   
+QRUPT          000027   A              000000   

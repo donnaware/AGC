@@ -1,0 +1,240 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO1_CCS (file:teco1_CCCS.asm)
+                          
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests basic instructions: CCS.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; 
+                          START          EQU      %00            
+                          CCStst         EQU      %02            ; CCS check failed
+                          PASS           EQU      %12345         ; PASSED all checks
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          ; ----------------------------------------------
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+00102    0102     00000 1 CCSk           DS       %0             ; CCS test
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINT:
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         
+02000    2000 0  1,2001 1                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          ; ----------------------------------------------
+                          goMAIN         EQU      *              
+02001    2001 2  0,0000 0                INHINT                  ; disable interrupts
+02002    2002 0  1,2011 0                TCR      begin          
+02003    2003 0  1,2031 1                TCR      chkCCS         ; Test basic instructions.
+02004    2004 0  1,2156 1                TCR      finish         ; Passed all tests.
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02007    2007 0  1,2007 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          ; ----------------------------------------------
+02010    2010     00000 1 STRTcode       DS       START          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CCS INSTRUCTION SUBROUTINE
+                          ; L:	CCS	K
+                          ; Verifies the following:
+                          ; - take next instruction from L+n and proceed from there, where:
+                          ; -- n = 1 if C(K) > 0
+                          ; -- n = 2 if C(K) = +0
+                          ; -- n = 3 if C(K) < 0
+                          ; -- n = 4 if C(K) = -0
+                          ; - set C(A) = DABS[C(K)], where DABS (diminished abs value):
+                          ; -- DABS(a) = abs(a) - 1,	if abs(a) > 1
+                          ; -- DABS(a) = +0, 		if abs(a) <= 1
+                          ; ----------------------------------------------
+02014    2014     00002 0 CCScode        DS       CCStst         ; code for this test
+02015    2015     77775 1 CCSkM2         DS       -2             ; test values (K)
+02016    2016     77776 1 CCSkM1         DS       -1             
+02017    2017     77777 0 CCSkM0         DS       -0             
+02020    2020     00000 1 CCSkP0         DS       +0             
+02021    2021     00001 0 CCSkP1         DS       +1             
+02022    2022     00002 0 CCSkP2         DS       +2             
+                          
+02023    2023     00001 0 CCSdM2         DS       1              ; for K=-2, DABS = +1	; expected DABS values
+02024    2024     00000 1 CCSdM1         DS       0              ; for K=-1, DABS = +0
+02025    2025     00000 1 CCSdM0         DS       0              ; for K=-0, DABS = +0
+02026    2026     00000 1 CCSdP0         DS       0              ; for K=+0, DABS = +0
+02027    2027     00000 1 CCSdP1         DS       0              ; for K=+1, DABS = +0
+02030    2030     00001 0 CCSdP2         DS       1              ; for K=+2, DABS = +1
+                          
+                          chkCCS         EQU      *              
+02031    2031 3  0,0001 0                XCH      Q              
+02032    2032 5  0,0101 1                TS       savQ           ; save return address
+                          
+02033    2033 3  1,2014 0                CAF      CCScode        
+02034    2034 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; set K to -2 and execute CCS: 
+                          ; check for correct branch
+02035    2035 3  1,2015 1                CAF      CCSkM2         ; set K = -2
+02036    2036 5  0,0102 1                TS       CCSk           
+02037    2037 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02040    2040 0  1,2005 0                TC       fail           ; K > 0
+02041    2041 0  1,2005 0                TC       fail           ; K= +0
+02042    2042 0  1,2044 0                TC       *+2            ; K < 0
+02043    2043 0  1,2005 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=-2, it should be 1)
+02044    2044 4  0,0000 0                COM                     ; 1's compliment of A
+02045    2045 6  1,2023 1                AD       CCSdM2         ; put (-A) + expected value in A
+02046    2046 1  0,0000 0                CCS      A              ; A = DABS
+02047    2047 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02050    2050 0  1,2005 0                TC       fail           ; +0
+02051    2051 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to -1 and execute CCS: 
+                          ; check for correct branch
+02052    2052 3  1,2016 1                CAF      CCSkM1         ; set K = -1
+02053    2053 5  0,0102 1                TS       CCSk           
+02054    2054 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02055    2055 0  1,2005 0                TC       fail           ; K > 0
+02056    2056 0  1,2005 0                TC       fail           ; K= +0
+02057    2057 0  1,2061 1                TC       *+2            ; K < 0
+02060    2060 0  1,2005 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=-1, it should be +0)
+02061    2061 4  0,0000 0                COM                     ; 1's compliment of A
+02062    2062 6  1,2024 0                AD       CCSdM1         ; put (-A) + expected value in A
+02063    2063 1  0,0000 0                CCS      A              ; A = DABS
+02064    2064 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02065    2065 0  1,2005 0                TC       fail           ; +0
+02066    2066 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to -0 and execute CCS: 
+                          ; check for correct branch
+02067    2067 3  1,2017 0                CAF      CCSkM0         ; set K = -0
+02070    2070 5  0,0102 1                TS       CCSk           
+02071    2071 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02072    2072 0  1,2005 0                TC       fail           ; K > 0
+02073    2073 0  1,2005 0                TC       fail           ; K= +0
+02074    2074 0  1,2005 0                TC       fail           ; K < 0
+                          ; check for correct DABS in A (for K=-0, it should be +0)
+02075    2075 4  0,0000 0                COM                     ; 1's compliment of A
+02076    2076 6  1,2025 1                AD       CCSdM0         ; put (-A) + expected value in A
+02077    2077 1  0,0000 0                CCS      A              ; A = DABS
+02100    2100 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02101    2101 0  1,2005 0                TC       fail           ; +0
+02102    2102 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to +0 and execute CCS: 
+                          ; check for correct branch
+02103    2103 3  1,2020 1                CAF      CCSkP0         ; set K = +0
+02104    2104 5  0,0102 1                TS       CCSk           
+02105    2105 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02106    2106 0  1,2005 0                TC       fail           ; K > 0
+02107    2107 0  1,2112 1                TC       *+3            ; K= +0
+02110    2110 0  1,2005 0                TC       fail           ; K < 0
+02111    2111 0  1,2005 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=+0, it should be +0)
+02112    2112 4  0,0000 0                COM                     ; 1's compliment of A
+02113    2113 6  1,2026 1                AD       CCSdP0         ; put (-A) + expected value in A
+02114    2114 1  0,0000 0                CCS      A              ; A = DABS
+02115    2115 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02116    2116 0  1,2005 0                TC       fail           ; +0
+02117    2117 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to +1 and execute CCS: 
+                          ; check for correct branch
+02120    2120 3  1,2021 0                CAF      CCSkP1         ; set K = +1
+02121    2121 5  0,0102 1                TS       CCSk           
+02122    2122 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02123    2123 0  1,2127 1                TC       *+4            ; K > 0
+02124    2124 0  1,2005 0                TC       fail           ; K= +0
+02125    2125 0  1,2005 0                TC       fail           ; K < 0
+02126    2126 0  1,2005 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=+1, it should be +0)
+02127    2127 4  0,0000 0                COM                     ; 1's compliment of A
+02130    2130 6  1,2027 0                AD       CCSdP1         ; put (-A) + expected value in A
+02131    2131 1  0,0000 0                CCS      A              ; A = DABS
+02132    2132 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02133    2133 0  1,2005 0                TC       fail           ; +0
+02134    2134 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; set K to +2 and execute CCS: 
+                          ; check for correct branch
+02135    2135 3  1,2022 0                CAF      CCSkP2         ; set K = +2
+02136    2136 5  0,0102 1                TS       CCSk           
+02137    2137 1  0,0102 0                CCS      CCSk           ; A = DABS[C(K)]
+02140    2140 0  1,2144 1                TC       *+4            ; K > 0
+02141    2141 0  1,2005 0                TC       fail           ; K= +0
+02142    2142 0  1,2005 0                TC       fail           ; K < 0
+02143    2143 0  1,2005 0                TC       fail           ; K= -0
+                          ; check for correct DABS in A (for K=+2, it should be +1)
+02144    2144 4  0,0000 0                COM                     ; 1's compliment of A
+02145    2145 6  1,2030 0                AD       CCSdP2         ; put (-A) + expected value in A
+02146    2146 1  0,0000 0                CCS      A              ; A = DABS
+02147    2147 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02150    2150 0  1,2005 0                TC       fail           ; +0
+02151    2151 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; ----------------------------------------------
+                          ; passed the test
+                          ; ----------------------------------------------
+02152    2152 3  0,0101 1                XCH      savQ           
+02153    2153 5  0,0001 0                TS       Q              ; restore return address
+02154    2154 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          ; ----------------------------------------------
+02155    2155     12345 0 PASScode       DS       PASS           
+                          finish         EQU      *              
+02156    2156 3  1,2155 1                CAF      PASScode       
+02157    2157 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02160    2160 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   CCStst         000002   PASS           012345   
+OVFCNTR        000034   curtest        000100   savQ           000101   
+CCSk           000102   GOPROG         002000   goMAIN         002001   
+fail           002005   end            002007   STRTcode       002010   
+begin          002011   CCScode        002014   CCSkM2         002015   
+CCSkM1         002016   CCSkM0         002017   CCSkP0         002020   
+CCSkP1         002021   CCSkP2         002022   CCSdM2         002023   
+CCSdM1         002024   CCSdM0         002025   CCSdP0         002026   
+CCSdP1         002027   CCSdP2         002030   chkCCS         002031   
+PASScode       002155   finish         002156   Q              000001   
+A              000000   

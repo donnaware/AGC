@@ -1,0 +1,1472 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;-------------------------------------------------------------------------- 
+                          ; AGC MEMORY GAME
+                          ; 
+                          ; Version:  1.0
+                          ; Author:   John Pultorak
+                          ; Date:     6/6/2009
+                          ; 
+                          ; THIS WORK IS PUBLIC DOMAIN.
+                          ; 
+                          ; PURPOSE:
+                          ; A game to test your memory. The AGC presents you with a sequence of digits,
+                          ; one digit at a time. You have to remember the sequence and type it back in.
+                          ; If you're successful, AGC adds another digit to the sequence.
+                          ;   This continues until the limits of your memory are reached. The sequence
+                          ; begins with one digit and increases until you fail or until it reaches 30
+                          ; digits in length.
+                          ;   The digits are 1-7. Zero is not considered a digit in the sequence.
+                          ; 
+                          ; 
+                          ; GAMEBOARD:
+                          ; The sequence of digits is displayed in the rightmost digit of R1 on the
+                          ; DSKY. The display begins with 0, which is not considered part of the
+                          ; sequence. The sequence then begins with the digits appearing about once-
+                          ; per-second. The number of digits in your sequence is displayed in R2.
+                          ; After all digits in the sequence have been displayed, 0 is briefly dis-
+                          ; played again. Then, you have to repeat the sequence by typing it back
+                          ; into R1.
+                          ; 
+                          ; 
+                          ; OPERATOR INPUT:
+                          ; AGC uses VERB 21, NOUN 2 to get your input. You may enter as few as 1 or
+                          ; as many as 4 digits at any time. Although there is space for a 5th digit,
+                          ; you must not enter a 5th digit; if you do, you will lose the game.
+                          ;    When the sequence grows beyond 4, or if you enter fewer than 4 digits
+                          ; at a time, the AGC will enter another VERB 21, NOUN 2 to get additional
+                          ; digits. It will keep doing that until you enter the entire sequence or
+                          ; until you make a mistake.
+                          ; 
+                          ; 
+                          ; GETTING STARTED:
+                          ; Kick things off by selecting the program. To play against the AGC:
+                          ;   <VERB> <37> <NOUN> <77> <ENTER>
+                          ; 
+                          ; This selects PROGRAM 77 which will start the memory game job.
+                          ; 
+                          ; 
+                          ; IMPLEMENTATION:
+                          ; The game is started with the PROGRAM code P77. The program starts
+                          ; an EXEC job that runs until a delay (time interval) is needed. At that
+                          ; point, the job starts a WAITLIST task and then terminates. The task
+                          ; waits for the desired time interval, starts a job for the next portion of
+                          ; code, and terminates. The code is therefore a chain of jobs that
+                          ; do something alternating with tasks that produce delay intervals.
+                          ;    The random numbers in the digit sequence are obtained from the least
+                          ; significant bits of the AGC real-time clock.
+                          ; 
+                          ; 
+                          ; ERRATA:
+                          ; The 4-digit limitation on key entries is annoying. The only alternative
+                          ; I could come up with is to change the number field from 3-bits to 2-bits.
+                          ; This avoids setting bit 15 which causes the problem. But it would limit
+                          ; the digit range to 1-3 which seems too small. It is hard to remember to
+                          ; limit your key entries to groups of 4. But then again, this IS a memory game.
+                          ;-------------------------------------------------------------------------- 
+                          
+00000    0000     00036 1 G2MAX          DS       30             ; max numbers
+00001    0001     00007 0 G2MASKT1       DS       7              
+                          
+                          ; clear the memory list
+                          
+*** ERROR: ZERO undefined.
+00002    0002 3  0,0000 1 P77            CAF      ZERO           
+*** ERROR: G2PUT undefined.
+00003    0003 5  0,0000 1                TS       G2PUT          
+*** ERROR: G2LSTNUM undefined.
+00004    0004 5  0,0000 1                TS       G2LSTNUM       ; last number to be inserted
+                          
+                          ; if G2PUT equals G2MAX, the insertion limit is reached.
+                          
+00005    0005 4  0,0000 0 G2NXTMOV       CS       G2MAX          ; 1's compliment of G2MAX
+*** ERROR: G2PUT undefined.
+00006    0006 6  0,0000 1                AD       G2PUT          ; put (-A) + val in A
+00007    0007 1  0,0000 0                CCS      A              ; A = DABS
+00010    0010 0  0,0014 1                TC       *+4            ; >0 (A < val)
+00011    0011 0  0,0202 1                TC       G2END1         ; +0 (never happens)
+00012    0012 0  0,0014 1                TC       *+2            ; <0 (A > val)
+00013    0013 0  0,0202 1                TC       G2END1         ; -0 (A == val)
+                          
+                          ; add a number to the memory list
+                          
+*** ERROR: ZERO undefined.
+00014    0014 3  0,0000 1                CAF      ZERO           
+00015    0015 6  0,0036 1                AD       TIME1          ; get a random number
+00016    0016 7  0,0001 1                MASK     G2MASKT1       
+*** ERROR: G1OIVALU undefined.
+00017    0017 5  0,0000 1                TS       G1OIVALU       
+                          
+*** ERROR: G1OIVALU undefined.
+00020    0020 1  0,0000 0                CCS      G1OIVALU       ; number is nonzero, right?
+00021    0021 0  0,0023 0                TC       *+2            ; yes
+00022    0022 0  0,0005 1                TC       G2NXTMOV       ; no, get a different number
+                          
+                          ; number is different from the previous number, right?
+                          
+*** ERROR: G1OIVALU undefined.
+00023    0023 4  0,0000 0                CS       G1OIVALU       ; 1's compliment of G1OIVALU
+*** ERROR: G2LSTNUM undefined.
+00024    0024 6  0,0000 1                AD       G2LSTNUM       ; put (-A) + val in A
+00025    0025 1  0,0000 0                CCS      A              ; A = DABS
+00026    0026 0  0,0032 0                TC       *+4            ; >0 (A < val)
+00027    0027 0  0,0005 1                TC       G2NXTMOV       ; +0 (never happens)
+00030    0030 0  0,0032 0                TC       *+2            ; <0 (A > val)
+00031    0031 0  0,0005 1                TC       G2NXTMOV       ; -0 (A == val)
+                          
+*** ERROR: G1OIVALU undefined.
+00032    0032 3  0,0000 1                XCH      G1OIVALU       ; new number becomes the previous
+*** ERROR: G1OIVALU undefined.
+00033    0033 5  0,0000 1                TS       G1OIVALU       
+*** ERROR: G2LSTNUM undefined.
+00034    0034 5  0,0000 1                TS       G2LSTNUM       
+                          
+*** ERROR: G2PUT undefined.
+00035    0035 2  0,0000 0                INDEX    G2PUT          
+*** ERROR: G2LIST undefined.
+00036    0036 5  0,0000 1                TS       G2LIST         ; indexed insert onto list
+                          
+*** ERROR: G2PUT undefined.
+00037    0037 3  0,0000 1                XCH      G2PUT          
+*** ERROR: ONE undefined.
+00040    0040 6  0,0000 1                AD       ONE            
+*** ERROR: G2PUT undefined.
+00041    0041 5  0,0000 1                TS       G2PUT          ; bump insertion index
+                          
+                          ; clear the display
+                          
+*** ERROR: G1DSPR2 undefined.
+00042    0042 5  0,0000 1                TS       G1DSPR2        ; display the sequence count
+                          
+*** ERROR: ZERO undefined.
+00043    0043 3  0,0000 1                CAF      ZERO           
+*** ERROR: G1DSPR1 undefined.
+00044    0044 5  0,0000 1                TS       G1DSPR1        
+*** ERROR: G1DSPR3 undefined.
+00045    0045 5  0,0000 1                TS       G1DSPR3        
+                          
+00046    0046 0  0,0330 1                TCR      G1DISPLY       ; clear the display
+                          
+                          ; delay before starting the number display sequence
+                          
+00047    0047 3  0,0205 0                CAF      G2T300         ; add a timer task
+*** ERROR: WAITLIST undefined.
+00050    0050 0  0,0000 1                TC       WAITLIST       
+00051    0051     00207 1                CADR     G2TASK0        ; 14-bit task address
+                          
+*** ERROR: ENDOFJOB undefined.
+00052    0052 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          
+                          ; loop to display all numbers on the memory list
+                          
+*** ERROR: ZERO undefined.
+00053    0053 3  0,0000 1 G2ADDNUM       CAF      ZERO           
+*** ERROR: G2GET undefined.
+00054    0054 5  0,0000 1                TS       G2GET          ; initialize display index
+                          
+                          
+                          ; if G2GET equals G2PUT, all numbers have been displayed
+                          
+*** ERROR: G2GET undefined.
+00055    0055 4  0,0000 0 G2DISPLY       CS       G2GET          ; 1's compliment of G2GET
+*** ERROR: G2PUT undefined.
+00056    0056 6  0,0000 1                AD       G2PUT          ; put (-A) + val in A
+00057    0057 1  0,0000 0                CCS      A              ; A = DABS
+00060    0060 0  0,0064 0                TC       *+4            ; >0 (A < val)
+00061    0061 0  0,0101 1                TC       G2DSDONE       ; +0 (never happens)
+00062    0062 0  0,0064 0                TC       *+2            ; <0 (A > val)
+00063    0063 0  0,0101 1                TC       G2DSDONE       ; -0 (A == val)
+                          
+*** ERROR: G2GET undefined.
+00064    0064 2  0,0000 0                INDEX    G2GET          
+*** ERROR: G2LIST undefined.
+00065    0065 3  0,0000 1                XCH      G2LIST         
+*** ERROR: G2GET undefined.
+00066    0066 2  0,0000 0                INDEX    G2GET          
+*** ERROR: G2LIST undefined.
+00067    0067 5  0,0000 1                TS       G2LIST         ; get number from list
+                          
+*** ERROR: G1DSPR1 undefined.
+00070    0070 5  0,0000 1                TS       G1DSPR1        
+00071    0071 0  0,0330 1                TCR      G1DISPLY       ; display the number
+                          
+*** ERROR: G2GET undefined.
+00072    0072 3  0,0000 1                XCH      G2GET          
+*** ERROR: ONE undefined.
+00073    0073 6  0,0000 1                AD       ONE            
+*** ERROR: G2GET undefined.
+00074    0074 5  0,0000 1                TS       G2GET          ; bump retrieval index
+                          
+                          ; start task delay before displaying the next number
+                          
+00075    0075 3  0,0204 1                CAF      G2T100         ; add a timer task
+*** ERROR: WAITLIST undefined.
+00076    0076 0  0,0000 1                TC       WAITLIST       
+00077    0077     00213 1                CADR     G2TASK1        ; 14-bit task address
+                          
+*** ERROR: ENDOFJOB undefined.
+00100    0100 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          
+                          ; done displaying the memory sequence
+                          
+*** ERROR: ZERO undefined.
+00101    0101 3  0,0000 1 G2DSDONE       CAF      ZERO           
+*** ERROR: G1DSPR1 undefined.
+00102    0102 5  0,0000 1                TS       G1DSPR1        
+                          
+00103    0103 0  0,0330 1                TCR      G1DISPLY       ; display the number
+                          
+00104    0104 3  0,0204 1                CAF      G2T100         ; add a timer task
+*** ERROR: WAITLIST undefined.
+00105    0105 0  0,0000 1                TC       WAITLIST       
+00106    0106     00217 0                CADR     G2TASK2        ; 14-bit task address
+                          
+*** ERROR: ENDOFJOB undefined.
+00107    0107 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          
+00110    0110     07000 0 G2MASK         DS       %07000         
+00111    0111     00777 0 G2MASKA        DS       %00777         
+                          
+                          ; get user input
+                          
+*** ERROR: ZERO undefined.
+00112    0112 3  0,0000 1 G2GETINP       CAF      ZERO           
+*** ERROR: G2GET undefined.
+00113    0113 5  0,0000 1                TS       G2GET          ; initialize display index
+                          
+00114    0114 0  0,0346 0 G2ILOOP        TCR      G1INPUT        
+                          
+                          ; Extract octal digits from the input word
+                          ; Decrementing loop (loop G2LCNTR2 times)
+                          
+*** ERROR: FOUR undefined.
+00115    0115 3  0,0000 1                CAF      FOUR           
+*** ERROR: G2LCNTR2 undefined.
+00116    0116 5  0,0000 1                TS       G2LCNTR2       
+                          
+*** ERROR: G2LCNTR2 undefined.
+00117    0117 1  0,0000 0 G2DLOOP        CCS      G2LCNTR2       ; got all digits?
+00120    0120 0  0,0122 0                TC       *+2            ; not yet
+00121    0121 0  0,0114 0                TC       G2ILOOP        ; yes, get more user input
+*** ERROR: G2LCNTR2 undefined.
+00122    0122 5  0,0000 1                TS       G2LCNTR2       
+                          
+                          ; Extract the digit in in bits 10-12
+                          
+*** ERROR: G1OIVALU undefined.
+00123    0123 3  0,0000 1                XCH      G1OIVALU       
+*** ERROR: G1OIVALU undefined.
+00124    0124 5  0,0000 1                TS       G1OIVALU       
+00125    0125 7  0,0110 0                MASK     G2MASK         
+*** ERROR: G2NUM undefined.
+00126    0126 5  0,0000 1                TS       G2NUM          
+                          
+                          ; if digit is zero, ignore it.
+                          
+*** ERROR: G2NUM undefined.
+00127    0127 1  0,0000 0                CCS      G2NUM          ; zero?
+00130    0130 0  0,0132 1                TC       *+2            ; no
+00131    0131 0  0,0172 0                TC       G2SHR3         ; yes, get next digit
+                          
+                          ; shift right 9 times to place digit in lsb.
+                          
+*** ERROR: G2NUM undefined.
+00132    0132 3  0,0000 1                XCH      G2NUM          
+00133    0133 5  0,0021 1                TS       SR             
+00134    0134 4  0,0021 0                CS       SR             
+00135    0135 4  0,0021 0                CS       SR             
+00136    0136 4  0,0021 0                CS       SR             
+00137    0137 4  0,0021 0                CS       SR             
+00140    0140 4  0,0021 0                CS       SR             
+00141    0141 4  0,0021 0                CS       SR             
+00142    0142 4  0,0021 0                CS       SR             
+00143    0143 4  0,0021 0                CS       SR             
+00144    0144 3  0,0021 1                XCH      SR             
+*** ERROR: G2NUM undefined.
+00145    0145 5  0,0000 1                TS       G2NUM          
+                          
+                          ; digit matches list? If not, game over.
+                          
+*** ERROR: G2GET undefined.
+00146    0146 2  0,0000 0                INDEX    G2GET          
+*** ERROR: G2LIST undefined.
+00147    0147 3  0,0000 1                XCH      G2LIST         
+*** ERROR: G2GET undefined.
+00150    0150 2  0,0000 0                INDEX    G2GET          
+*** ERROR: G2LIST undefined.
+00151    0151 5  0,0000 1                TS       G2LIST         ; get number from list
+                          
+00152    0152 4  0,0000 0                COM      A              ; 1's compliment of A
+*** ERROR: G2NUM undefined.
+00153    0153 6  0,0000 1                AD       G2NUM          ; put (-A) + val in A
+00154    0154 1  0,0000 0                CCS      A              ; A = DABS
+00155    0155 0  0,0203 0                TC       G2END2         ; >0 (A < val)
+00156    0156 0  0,0160 0                TC       *+2            ; +0 (never happens)
+00157    0157 0  0,0203 0                TC       G2END2         ; <0 (A > val)
+                          
+                          ; End of list? If so, increase number sequence
+                          
+*** ERROR: G2GET undefined.
+00160    0160 3  0,0000 1                XCH      G2GET          
+*** ERROR: ONE undefined.
+00161    0161 6  0,0000 1                AD       ONE            
+*** ERROR: G2GET undefined.
+00162    0162 5  0,0000 1                TS       G2GET          ; bump retrieval index
+                          
+*** ERROR: G2GET undefined.
+00163    0163 4  0,0000 0                CS       G2GET          ; 1's compliment of G2GET
+*** ERROR: G2PUT undefined.
+00164    0164 6  0,0000 1                AD       G2PUT          ; put (-A) + val in A
+00165    0165 1  0,0000 0                CCS      A              ; A = DABS
+00166    0166 0  0,0172 0                TC       *+4            ; >0 (A < val)
+00167    0167 0  0,0005 1                TC       G2NXTMOV       ; +0 (never happens)
+00170    0170 0  0,0172 0                TC       *+2            ; <0 (A > val)
+00171    0171 0  0,0005 1                TC       G2NXTMOV       ; -0 (A == val)
+                          
+                          ; shift user input left 3 times to get next digit
+                          
+*** ERROR: G1OIVALU undefined.
+00172    0172 3  0,0000 1 G2SHR3         XCH      G1OIVALU       
+00173    0173 7  0,0111 1                MASK     G2MASKA        
+00174    0174 5  0,0023 0                TS       SL             
+00175    0175 4  0,0023 1                CS       SL             ; shift left 3 bits
+00176    0176 4  0,0023 1                CS       SL             
+00177    0177 3  0,0023 0                XCH      SL             
+*** ERROR: G1OIVALU undefined.
+00200    0200 5  0,0000 1                TS       G1OIVALU       
+                          
+00201    0201 0  0,0117 0                TC       G2DLOOP        ; get next digit
+                          
+                          
+                          ; game over, max sequence length reached!!!
+                          
+*** ERROR: ENDOFJOB undefined.
+00202    0202 0  0,0000 1 G2END1         TC       ENDOFJOB       
+                          
+                          ; game over, user made an error!!!
+                          
+*** ERROR: ENDOFJOB undefined.
+00203    0203 0  0,0000 1 G2END2         TC       ENDOFJOB       
+                          
+                          
+00204    0204     00144 0 G2T100         DS       100            ; 1 second
+00205    0205     00454 1 G2T300         DS       300            ; 3 seconds
+00206    0206     00003 1 G2PRIO         DS       %3             ; lowest priority
+                          
+                          ; task initiates delay before start of game
+                          
+00207    0207 3  0,0206 0 G2TASK0        XCH      G2PRIO         ; job priority
+*** ERROR: NOVAC undefined.
+00210    0210 0  0,0000 1                TC       NOVAC          
+00211    0211     00053 1                CADR     G2ADDNUM       ; 14-bit job address
+*** ERROR: TASKOVER undefined.
+00212    0212 0  0,0000 1                TC       TASKOVER       
+                          
+                          ; task initiates display of next digit after a delay
+                          
+00213    0213 3  0,0206 0 G2TASK1        XCH      G2PRIO         ; job priority
+*** ERROR: NOVAC undefined.
+00214    0214 0  0,0000 1                TC       NOVAC          
+00215    0215     00055 1                CADR     G2DISPLY       ; 14-bit job address
+*** ERROR: TASKOVER undefined.
+00216    0216 0  0,0000 1                TC       TASKOVER       
+                          
+                          ; task initiates delay after all digits have been displayed
+                          
+00217    0217 3  0,0206 0 G2TASK2        XCH      G2PRIO         ; job priority
+*** ERROR: NOVAC undefined.
+00220    0220 0  0,0000 1                TC       NOVAC          
+00221    0221     00112 0                CADR     G2GETINP       ; 14-bit job address
+*** ERROR: TASKOVER undefined.
+00222    0222 0  0,0000 1                TC       TASKOVER       
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; AGC TIC-TAC-TOE
+                          ; 
+                          ; P78: player1 vs. AGC
+                          ; P79: player1 vs. player2
+                          ; 
+                          ; Version:  1.0
+                          ; Author:   John Pultorak
+                          ; Date:     6/6/2009
+                          ; 
+                          ; THIS WORK IS PUBLIC DOMAIN.
+                          ; 
+                          ; PURPOSE:
+                          ; A one- or two-player classical tic-tac-toe game. The primitive gameboard
+                          ; and the timed-interval between moves adds a certain additional challenge.
+                          ; 
+                          ; 
+                          ; GAMEBOARD:
+                          ; The gameboard is displayed on the DSKY. The board positions occupy the
+                          ; middle 3 digits of each register:
+                          ; 
+                          ;   R1: 0XXX0
+                          ;   R2: 0XXX0
+                          ;   R3: 0XXX0
+                          ; 
+                          ; Digits on the right and left margins are ignored. Each position on the 
+                          ; gameboard is identified by a number (1-9):
+                          ; 
+                          ;   R1: 01230
+                          ;   R2: 04560
+                          ;   R3: 07890
+                          ; 
+                          ; The user selects a move by entering the number (1-9) for the desired
+                          ; position. To redisplay the gameboard without making a move, enter 0.
+                          ;    There are no X'es and O's. Player 1 is a '1' and Player 2 is a '2'.
+                          ; An unoccupied space is a zero.
+                          ;    You enter the position code (1-9) or 0 to redisplay. The AGC keeps
+                          ; track of whose turn it is and will put a '1' or '2' in the selected
+                          ; position as appropriate.
+                          ;    AGC monitors the game and freezes the display when the game is over.
+                          ; 
+                          ; 
+                          ; MAKING A MOVE:
+                          ; When it's time to make your move, AGC uses VERB 21, NOUN 2 to get your
+                          ; input. You can make your move in octal or decimal. If you use octal, you
+                          ; can enter a single digit for the first 7 positions on the board. For
+                          ; position 8, enter '10' and, for postion 9, '11'.
+                          ;    If you want to use decimal entries, you must preceed them with a '+'
+                          ; sign and enter the entire 5 digits: i.e.: +00008. You'll probably find
+                          ; the octal digits a better choice.
+                          ; 
+                          ; 
+                          ; GETTING STARTED:
+                          ; Kick things off by selecting the program. To play against the AGC:
+                          ;   <VERB> <37> <NOUN> <78> <ENTER>
+                          ; 
+                          ; This selects PROGRAM 78 which will start the tic-tac-toe job.
+                          ; 
+                          ; 
+                          ; IMPLEMENTATION:
+                          ; The game is started with the PROGRAM code P78 or P79. The program starts
+                          ; an EXEC job that initializes the gameboard and then displays it using
+                          ; VERB 5, NOUN 2. The job then terminates with an ENDOFJOB but, before it
+                          ; terminates, it starts a task on the WAITLIST.
+                          ;    The purpose of the task is to create a short time interval between moves
+                          ; so the player(s) can study the gameboard. When the task times out, it re-
+                          ; starts the job. The job handles one move and then terminates, restarting
+                          ; the task which then restarts the job for the next move.
+                          ;    Each job begins by getting a move from the AGC or from the player using
+                          ; VERB 21, NOUN 2. The move is checked to verify that it's valid (an un-
+                          ; occupied position. The move is then entered into the gameboard, the board
+                          ; is redisplayed, and the board is checked for a win or stalemate. In the
+                          ; event of a win or stalemate, the job terminates without starting the task
+                          ; so the final state of the board remains frozen on the DSKY.
+                          ;    If the AGC is making a move, it begins by searching for a move that will
+                          ; give it a win on this turn. If no such move is found, it searches for a move
+                          ; that will block the opponent's win on his next turn. If no such move is
+                          ; found, it checks whether the opponent is occupying any corner positions
+                          ; the opposite corner is unoccupied. This could lead to a dilemma where the
+                          ; opponent could force a win. If no such move is found, the AGC does a
+                          ; default move using an order of preference.
+                          ;    The code uses and re-uses a small number of simple techniques: subroutine
+                          ; calls, a decrementing loop, an indexed table lookup, a variable comparison,
+                          ; and calls to internal AGC "PINBALL" I/O routines. If you examine the code,
+                          ; there is a great deal of building-block type repetition.
+                          ; 
+                          ; ERRATA:
+                          ; There is no range-checking on the user's move. If you enter a number other
+                          ; than 0-9, it will malfunction.
+                          ; Each game always begins with player 1. If you're playing the AGC, it might
+                          ; be fun to have the AGC begin once and awhile.
+                          ; 
+                          ;-------------------------------------------------------------------------- 
+                          
+*** ERROR: ZERO undefined.
+00223    0223 3  0,0000 1 P78            CAF      ZERO           ; player1 vs. AGC
+*** ERROR: G1PLAYRS undefined.
+00224    0224 5  0,0000 1                TS       G1PLAYRS       
+00225    0225 0  0,0230 0                TC       G1_initialize  
+                          
+*** ERROR: ONE undefined.
+00226    0226 3  0,0000 1 P79            CAF      ONE            ; player1 vs. player2
+*** ERROR: G1PLAYRS undefined.
+00227    0227 5  0,0000 1                TS       G1PLAYRS       
+                          
+                          ; initialize gameboard
+                          
+*** ERROR: ZERO undefined.
+00230    0230 3  0,0000 1 G1_initialize  CAF      ZERO           
+*** ERROR: G1MODE undefined.
+00231    0231 5  0,0000 1                TS       G1MODE         
+                          
+*** ERROR: G1MODE undefined.
+00232    0232 2  0,0000 0 G1_gameLoop    INDEX    G1MODE         ; mode = 0..3
+00233    0233 0  0,0234 1                TC       G1_indexGOTO   
+                          
+00234    0234 0  0,0240 1 G1_indexGOTO   TC       G1_clearBoard  ; mode = 0
+00235    0235 0  0,0247 0                TC       G1_player1Moves ; mode = 1
+00236    0236 0  0,0266 0                TC       G1_player2Moves ; mode = 2
+00237    0237 0  0,0310 0                TC       G1_showBoard   ; mode = 3
+                          
+                          ; clear gameboard
+                          
+*** ERROR: ZERO undefined.
+00240    0240 3  0,0000 1 G1_clearBoard  CAF      ZERO           
+*** ERROR: G1DSPR1 undefined.
+00241    0241 5  0,0000 1                TS       G1DSPR1        
+*** ERROR: G1DSPR2 undefined.
+00242    0242 5  0,0000 1                TS       G1DSPR2        
+*** ERROR: G1DSPR3 undefined.
+00243    0243 5  0,0000 1                TS       G1DSPR3        
+                          
+*** ERROR: ONE undefined.
+00244    0244 3  0,0000 1                CAF      ONE            ; human makes first move
+*** ERROR: G1MODE undefined.
+00245    0245 5  0,0000 1                TS       G1MODE         
+00246    0246 0  0,0310 0                TC       G1_showBoard   
+                          
+                          ; get player 1's move (player 1 is always a person)
+                          
+00247    0247 0  0,0346 0 G1_player1Moves TCR      G1INPUT        ; put move into G1OIVALU
+                          
+*** ERROR: G1OIVALU undefined.
+00250    0250 1  0,0000 0                CCS      G1OIVALU       
+00251    0251 0  0,0253 0                TC       G1_checkPlayer1 ; (1-9) player 1 selects a move
+00252    0252 0  0,0310 0                TC       G1_showBoard   ; (0) redisplay the gameboard
+                          
+                          ; validate player 1's move.
+                          
+*** ERROR: G1OIVALU undefined.
+00253    0253 3  0,0000 1 G1_checkPlayer1 XCH      G1OIVALU       
+*** ERROR: G1CURMOV undefined.
+00254    0254 5  0,0000 1                TS       G1CURMOV       
+                          
+00255    0255 0  0,0473 1                TCR      G1getpos       ; check if space is already occupied
+00256    0256 1  0,0000 0                CCS      A              ; space already occupied?
+00257    0257 0  0,0247 0                TC       G1_player1Moves ; yes, get a different move
+                          
+*** ERROR: G1CURMOV undefined.
+00260    0260 3  0,0000 1                XCH      G1CURMOV       
+*** ERROR: G1CURMOV undefined.
+00261    0261 5  0,0000 1                TS       G1CURMOV       
+00262    0262 0  0,0365 1                TCR      G1setpos       ; make the move
+                          
+*** ERROR: TWO undefined.
+00263    0263 3  0,0000 1                CAF      TWO            
+*** ERROR: G1MODE undefined.
+00264    0264 5  0,0000 1                TS       G1MODE         ; player 2 makes next move
+00265    0265 0  0,0310 0                TC       G1_showBoard   
+                          
+                          ; get player 2's move (player 2 is a person or the AGC).
+                          
+*** ERROR: G1PLAYRS undefined.
+00266    0266 1  0,0000 0 G1_player2Moves CCS      G1PLAYRS       ; human or AGC?
+00267    0267 0  0,0272 0                TC       G1_player2human ; human
+00270    0270 0  0,0677 1                TCR      G1AGCinput     ; AGC, put move into G1OIVALU
+00271    0271 0  0,0276 1                TC       G1_checkPlayer2 
+                          
+00272    0272 0  0,0346 0 G1_player2human TCR      G1INPUT        ; put move into G1OIVALU
+                          
+*** ERROR: G1OIVALU undefined.
+00273    0273 1  0,0000 0                CCS      G1OIVALU       
+00274    0274 0  0,0276 1                TC       G1_checkPlayer2 ; (1-9) player 2 selects a move
+00275    0275 0  0,0310 0                TC       G1_showBoard   ; (0) redisplay the gameboard
+                          
+                          ; validate player 2's move.
+                          
+*** ERROR: G1OIVALU undefined.
+00276    0276 3  0,0000 1 G1_checkPlayer2 XCH      G1OIVALU       
+*** ERROR: G1CURMOV undefined.
+00277    0277 5  0,0000 1                TS       G1CURMOV       
+                          
+00300    0300 0  0,0473 1                TCR      G1getpos       ; check if space is already occupied
+00301    0301 1  0,0000 0                CCS      A              ; space already occupied?
+00302    0302 0  0,0266 0                TC       G1_player2Moves ; yes, get a different move
+                          
+*** ERROR: G1CURMOV undefined.
+00303    0303 3  0,0000 1                XCH      G1CURMOV       
+*** ERROR: G1CURMOV undefined.
+00304    0304 5  0,0000 1                TS       G1CURMOV       
+00305    0305 0  0,0365 1                TCR      G1setpos       ; make the move
+                          
+*** ERROR: ONE undefined.
+00306    0306 3  0,0000 1                CAF      ONE            
+*** ERROR: G1MODE undefined.
+00307    0307 5  0,0000 1                TS       G1MODE         ; player 1 makes next move
+                          
+                          ; display gameboard
+                          
+00310    0310 0  0,0330 1 G1_showBoard   TCR      G1DISPLY       ; display G1DSPR1
+                          
+                          ; check for game over: a win or a tie.
+00311    0311 0  0,0617 1                TCR      G1checkWin     ; exit if there's a winner
+00312    0312 0  0,0663 1                TCR      G1checkTie     ; exit if there's a tie
+                          
+                          ; start task to make the next move
+                          
+00313    0313 3  0,0317 1                CAF      G1_time        ; add a test task
+*** ERROR: WAITLIST undefined.
+00314    0314 0  0,0000 1                TC       WAITLIST       
+00315    0315     00320 0                CADR     G1_task        ; 14-bit task address
+                          
+*** ERROR: ENDOFJOB undefined.
+00316    0316 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          
+                          ; task initiates the next move after a delay
+                          
+00317    0317     00764 1 G1_time        DS       500            ; 5 seconds
+                          
+00320    0320 3  0,0324 1 G1_task        XCH      G1_prio        ; job priority
+*** ERROR: NOVAC undefined.
+00321    0321 0  0,0000 1                TC       NOVAC          
+00322    0322     00232 1                CADR     G1_gameLoop    ; 14-bit job address
+*** ERROR: TASKOVER undefined.
+00323    0323 0  0,0000 1                TC       TASKOVER       
+                          
+00324    0324     00003 1 G1_prio        DS       %3             ; lowest priority
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Display the gameboard in R1, R2, and R3, Calls pinball: verb 5, noun 2.
+                          ; Entry:  G1DISPLY
+                          ; Input:  none
+                          ; Output: The octal contents of G1DSPR1, G1DSPR2, and G1DSPR3
+                          ;         are written to DSKY registers R1, R2, and R3.
+                          ;-------------------------------------------------------------------------- 
+                          
+00325    0325     01202 0 G1DSNVCD       DS       %01202         ; verb 05, noun 02
+00326    0326     00334 0 G1DSADDR       DS       G1DSRSTR       
+*** ERROR: G1DSPR1 undefined.
+00327    0327     00000 1 G1DSTCDR       DS       G1DSPR1        
+                          
+00330    0330 3  0,0001 0 G1DISPLY       XCH      Q              
+*** ERROR: G1DSSAVQ undefined.
+00331    0331 5  0,0000 1                TS       G1DSSAVQ       ; save return address
+                          
+00332    0332 3  0,0327 1                CAF      G1DSTCDR       ; load 'machine address to be specified'
+*** ERROR: MPAC undefined.
+00333    0333 5  0,0002 0                TS       MPAC+2         
+                          
+00334    0334 3  0,0325 0 G1DSRSTR       CAF      G1DSNVCD       
+*** ERROR: NVSUB undefined.
+00335    0335 0  0,0000 1                TC       NVSUB          
+                          
+00336    0336 0  0,0340 0                TC       *+2            ; display busy
+*** ERROR: G1DSSAVQ undefined.
+00337    0337 0  0,0000 1                TC       G1DSSAVQ       ; execution of verb/noun succeeded so RETURN
+                          
+00340    0340 3  0,0326 0                CAF      G1DSADDR       
+*** ERROR: NVSUBUSY undefined.
+00341    0341 0  0,0000 1                TC       NVSUBUSY       ; go to sleep until display released
+                          
+*** ERROR: ENDOFJOB undefined.
+00342    0342 0  0,0000 1                TC       ENDOFJOB       ; error: another job is already waiting
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Get operator input. Calls pinball: verb 21, noun 2.
+                          ; Sleeps if DSKY is busy until KEYREL. Executes verb 21, noun 2 to do
+                          ; an external load. Then it sleeps with ENDIDLE until the user loads
+                          ; the data or terminates the load with PROCEED or TERMINATE.
+                          ; NOTE: routines that call ENDIDLE must be in fixed-switchable memory.
+                          ; Entry:  G1INPUT
+                          ; Input:  none
+                          ; Output: The operator input is put into G1OIVALU.
+                          ;-------------------------------------------------------------------------- 
+                          
+00343    0343     05202 1 G1OINVCD       DS       %05202         ; verb 21, noun 02
+00344    0344     00352 0 G1OIADDR       DS       G1OIRSTR       
+*** ERROR: G1OIVALU undefined.
+00345    0345     00000 1 G1OITCDR       DS       G1OIVALU       
+                          
+                          
+00346    0346 3  0,0001 0 G1INPUT        XCH      Q              
+*** ERROR: G1OISAVQ undefined.
+00347    0347 5  0,0000 1                TS       G1OISAVQ       ; save return address
+                          
+00350    0350 3  0,0345 0                CAF      G1OITCDR       
+*** ERROR: MPAC undefined.
+00351    0351 5  0,0002 0                TS       MPAC+2         
+                          
+00352    0352 3  0,0343 0 G1OIRSTR       CAF      G1OINVCD       
+*** ERROR: NVSUB undefined.
+00353    0353 0  0,0000 1                TC       NVSUB          
+                          
+00354    0354 0  0,0356 1                TC       *+2            ; display busy
+00355    0355 0  0,0361 0                TC       G1OIWAIT       ; execution of verb/noun succeeded
+                          
+00356    0356 3  0,0344 1                CAF      G1OIADDR       
+*** ERROR: NVSUBUSY undefined.
+00357    0357 0  0,0000 1                TC       NVSUBUSY       ; go to sleep until display released
+*** ERROR: ENDOFJOB undefined.
+00360    0360 0  0,0000 1                TC       ENDOFJOB       ; another job is already sleeping
+                          
+*** ERROR: ENDIDLE undefined.
+00361    0361 0  0,0000 1 G1OIWAIT       TC       ENDIDLE        
+*** ERROR: ENDOFJOB undefined.
+00362    0362 0  0,0000 1                TC       ENDOFJOB       ; terminate
+*** ERROR: ENDOFJOB undefined.
+00363    0363 0  0,0000 1                TC       ENDOFJOB       ; proceed without data
+                          
+*** ERROR: G1OISAVQ undefined.
+00364    0364 0  0,0000 1                TC       G1OISAVQ       ; execution of verb/noun succeeded so RETURN
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Set a value at the indicated position on the gameboard. If A=0, the board 
+                          ; is not changed.
+                          ; Entry:  G1setpos
+                          ; Input:  The position (1-9) is in the A register. 
+                          ;         G1MODE contains the player (1-2)
+                          ; Output: the value in G1MODE is placed at the indicated position.
+                          ;-------------------------------------------------------------------------- 
+                          
+*** ERROR: G1STPOS undefined.
+00365    0365 5  0,0000 1 G1setpos       TS       G1STPOS        ; save pos
+00366    0366 3  0,0001 0                XCH      Q              
+*** ERROR: G1STSAVQ undefined.
+00367    0367 5  0,0000 1                TS       G1STSAVQ       ; save return address
+                          
+*** ERROR: G1MODE undefined.
+00370    0370 3  0,0000 1                XCH      G1MODE         
+*** ERROR: G1MODE undefined.
+00371    0371 5  0,0000 1                TS       G1MODE         
+                          
+00372    0372 5  0,0023 0                TS       SL             
+                          
+*** ERROR: G1STPOS undefined.
+00373    0373 2  0,0000 0                INDEX    G1STPOS        ; pos = 0..9
+00374    0374 0  0,0375 0                TC       G1ST_GOTO      ; indexed GOTO
+                          
+*** ERROR: G1STSAVQ undefined.
+00375    0375 0  0,0000 1 G1ST_GOTO      TC       G1STSAVQ       ; RETURN
+00376    0376 0  0,0407 1                TC       G1STPOS1       
+00377    0377 0  0,0411 0                TC       G1STPOS2       
+00400    0400 0  0,0413 1                TC       G1STPOS3       
+00401    0401 0  0,0415 1                TC       G1STPOS4       
+00402    0402 0  0,0417 0                TC       G1STPOS5       
+00403    0403 0  0,0421 0                TC       G1STPOS6       
+00404    0404 0  0,0423 1                TC       G1STPOS7       
+00405    0405 0  0,0425 1                TC       G1STPOS8       
+00406    0406 0  0,0427 0                TC       G1STPOS9       
+                          
+00407    0407 0  0,0431 1 G1STPOS1       TCR      G1ST_SL9       ; shift left 9 bits
+00410    0410 0  0,0443 1                TC       G1ST_maskR1    
+                          
+00411    0411 0  0,0434 1 G1STPOS2       TCR      G1ST_SL6       ; shift left 6 bits
+00412    0412 0  0,0443 1                TC       G1ST_maskR1    
+                          
+00413    0413 0  0,0437 1 G1STPOS3       TCR      G1ST_SL3       ; shift left 3 bits
+00414    0414 0  0,0443 1                TC       G1ST_maskR1    
+                          
+00415    0415 0  0,0431 1 G1STPOS4       TCR      G1ST_SL9       ; shift left 9 bits
+00416    0416 0  0,0452 1                TC       G1ST_maskR2    
+                          
+00417    0417 0  0,0434 1 G1STPOS5       TCR      G1ST_SL6       ; shift left 6 bits
+00420    0420 0  0,0452 1                TC       G1ST_maskR2    
+                          
+00421    0421 0  0,0437 1 G1STPOS6       TCR      G1ST_SL3       ; shift left 3 bits
+00422    0422 0  0,0452 1                TC       G1ST_maskR2    
+                          
+00423    0423 0  0,0431 1 G1STPOS7       TCR      G1ST_SL9       ; shift left 9 bits
+00424    0424 0  0,0461 1                TC       G1ST_maskR3    
+                          
+00425    0425 0  0,0434 1 G1STPOS8       TCR      G1ST_SL6       ; shift left 6 bits
+00426    0426 0  0,0461 1                TC       G1ST_maskR3    
+                          
+00427    0427 0  0,0437 1 G1STPOS9       TCR      G1ST_SL3       ; shift left 3 bits
+00430    0430 0  0,0461 1                TC       G1ST_maskR3    
+                          
+00431    0431 4  0,0023 1 G1ST_SL9       CS       SL             ; shift left 9 bits
+00432    0432 4  0,0023 1                CS       SL             
+00433    0433 4  0,0023 1                CS       SL             
+00434    0434 4  0,0023 1 G1ST_SL6       CS       SL             ; shift left 6 bits
+00435    0435 4  0,0023 1                CS       SL             
+00436    0436 4  0,0023 1                CS       SL             
+00437    0437 4  0,0023 1 G1ST_SL3       CS       SL             ; shift left 3 bits
+00440    0440 4  0,0023 1                CS       SL             
+00441    0441 3  0,0023 0                XCH      SL             
+00442    0442 0  0,0001 0                TC       Q              ; RETURN
+                          
+00443    0443 4  0,0000 0 G1ST_maskR1    COM                     
+00444    0444 5  0,0001 0                TS       Q              
+*** ERROR: G1DSPR1 undefined.
+00445    0445 4  0,0000 0                CS       G1DSPR1        
+00446    0446 7  0,0001 1                MASK     Q              ; 'OR' A with G1DSPR1
+00447    0447 4  0,0000 0                COM                     
+*** ERROR: G1DSPR1 undefined.
+00450    0450 5  0,0000 1                TS       G1DSPR1        
+*** ERROR: G1STSAVQ undefined.
+00451    0451 0  0,0000 1                TC       G1STSAVQ       ; RETURN
+                          
+00452    0452 4  0,0000 0 G1ST_maskR2    COM                     
+00453    0453 5  0,0001 0                TS       Q              
+*** ERROR: G1DSPR2 undefined.
+00454    0454 4  0,0000 0                CS       G1DSPR2        
+00455    0455 7  0,0001 1                MASK     Q              ; 'OR' A with G1DSPR2
+00456    0456 4  0,0000 0                COM                     
+*** ERROR: G1DSPR2 undefined.
+00457    0457 5  0,0000 1                TS       G1DSPR2        
+*** ERROR: G1STSAVQ undefined.
+00460    0460 0  0,0000 1                TC       G1STSAVQ       ; RETURN
+                          
+00461    0461 4  0,0000 0 G1ST_maskR3    COM                     
+00462    0462 5  0,0001 0                TS       Q              
+*** ERROR: G1DSPR3 undefined.
+00463    0463 4  0,0000 0                CS       G1DSPR3        
+00464    0464 7  0,0001 1                MASK     Q              ; 'OR' A with G1DSPR3
+00465    0465 4  0,0000 0                COM                     
+*** ERROR: G1DSPR3 undefined.
+00466    0466 5  0,0000 1                TS       G1DSPR3        
+*** ERROR: G1STSAVQ undefined.
+00467    0467 0  0,0000 1                TC       G1STSAVQ       ; RETURN
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Get the value at the indicated position on the gameboard.
+                          ; Entry:  G1getpos
+                          ; Input:  The position (1-9) is in the A register.
+                          ; Output: Gameboard value at that position is returned in the A register.
+                          ;-------------------------------------------------------------------------- 
+                          
+00470    0470     07000 0 G1GT_maskL     DS       %07000         
+00471    0471     00700 0 G1GT_maskM     DS       %00700         
+00472    0472     00070 0 G1GT_maskR     DS       %00070         
+                          
+*** ERROR: G1GTPOS undefined.
+00473    0473 5  0,0000 1 G1getpos       TS       G1GTPOS        ; save pos
+00474    0474 3  0,0001 0                XCH      Q              
+*** ERROR: G1GTSAVQ undefined.
+00475    0475 5  0,0000 1                TS       G1GTSAVQ       ; save return address
+                          
+*** ERROR: ZERO undefined.
+00476    0476 3  0,0000 1                CAF      ZERO           ; zero constant in fixed memory
+                          
+*** ERROR: G1GTPOS undefined.
+00477    0477 2  0,0000 0                INDEX    G1GTPOS        ; pos = 0..9
+00500    0500 0  0,0501 0                TC       G1GT_GOTO      ; indexed GOTO
+                          
+*** ERROR: G1GTSAVQ undefined.
+00501    0501 0  0,0000 1 G1GT_GOTO      TC       G1GTSAVQ       ; RETURN
+00502    0502 0  0,0513 0                TC       G1GTPOS1       
+00503    0503 0  0,0516 0                TC       G1GTPOS2       
+00504    0504 0  0,0521 1                TC       G1GTPOS3       
+00505    0505 0  0,0524 1                TC       G1GTPOS4       
+00506    0506 0  0,0527 1                TC       G1GTPOS5       
+00507    0507 0  0,0532 0                TC       G1GTPOS6       
+00510    0510 0  0,0535 1                TC       G1GTPOS7       
+00511    0511 0  0,0540 0                TC       G1GTPOS8       
+00512    0512 0  0,0543 0                TC       G1GTPOS9       
+                          
+*** ERROR: G1DSPR1 undefined.
+00513    0513 6  0,0000 1 G1GTPOS1       AD       G1DSPR1        
+00514    0514 7  0,0470 0                MASK     G1GT_maskL     
+00515    0515 0  0,0546 0                TC       G1GT_SR9       
+                          
+*** ERROR: G1DSPR1 undefined.
+00516    0516 6  0,0000 1 G1GTPOS2       AD       G1DSPR1        
+00517    0517 7  0,0471 1                MASK     G1GT_maskM     
+00520    0520 0  0,0550 1                TC       G1GT_SR6       
+                          
+*** ERROR: G1DSPR1 undefined.
+00521    0521 6  0,0000 1 G1GTPOS3       AD       G1DSPR1        
+00522    0522 7  0,0472 1                MASK     G1GT_maskR     
+00523    0523 0  0,0552 0                TC       G1GT_SR3       
+                          
+*** ERROR: G1DSPR2 undefined.
+00524    0524 6  0,0000 1 G1GTPOS4       AD       G1DSPR2        
+00525    0525 7  0,0470 0                MASK     G1GT_maskL     
+00526    0526 0  0,0546 0                TC       G1GT_SR9       
+                          
+*** ERROR: G1DSPR2 undefined.
+00527    0527 6  0,0000 1 G1GTPOS5       AD       G1DSPR2        
+00530    0530 7  0,0471 1                MASK     G1GT_maskM     
+00531    0531 0  0,0550 1                TC       G1GT_SR6       
+                          
+*** ERROR: G1DSPR2 undefined.
+00532    0532 6  0,0000 1 G1GTPOS6       AD       G1DSPR2        
+00533    0533 7  0,0472 1                MASK     G1GT_maskR     
+00534    0534 0  0,0552 0                TC       G1GT_SR3       
+                          
+*** ERROR: G1DSPR3 undefined.
+00535    0535 6  0,0000 1 G1GTPOS7       AD       G1DSPR3        
+00536    0536 7  0,0470 0                MASK     G1GT_maskL     
+00537    0537 0  0,0546 0                TC       G1GT_SR9       
+                          
+*** ERROR: G1DSPR3 undefined.
+00540    0540 6  0,0000 1 G1GTPOS8       AD       G1DSPR3        
+00541    0541 7  0,0471 1                MASK     G1GT_maskM     
+00542    0542 0  0,0550 1                TC       G1GT_SR6       
+                          
+*** ERROR: G1DSPR3 undefined.
+00543    0543 6  0,0000 1 G1GTPOS9       AD       G1DSPR3        
+00544    0544 7  0,0472 1                MASK     G1GT_maskR     
+00545    0545 0  0,0552 0                TC       G1GT_SR3       
+                          
+00546    0546 5  0,0021 1 G1GT_SR9       TS       SR             
+00547    0547 0  0,0554 0                TC       G1GT_SR9A      
+00550    0550 5  0,0021 1 G1GT_SR6       TS       SR             
+00551    0551 0  0,0557 0                TC       G1GT_SR6A      
+00552    0552 5  0,0021 1 G1GT_SR3       TS       SR             
+00553    0553 0  0,0562 0                TC       G1GT_SR3A      
+                          
+00554    0554 4  0,0021 0 G1GT_SR9A      CS       SR             ; shift right 9 bits
+00555    0555 4  0,0021 0                CS       SR             
+00556    0556 4  0,0021 0                CS       SR             
+00557    0557 4  0,0021 0 G1GT_SR6A      CS       SR             ; shift right 6 bits
+00560    0560 4  0,0021 0                CS       SR             
+00561    0561 4  0,0021 0                CS       SR             
+00562    0562 4  0,0021 0 G1GT_SR3A      CS       SR             ; shift right 3 bits
+00563    0563 4  0,0021 0                CS       SR             
+00564    0564 3  0,0021 1                XCH      SR             
+                          
+*** ERROR: G1GTSAVQ undefined.
+00565    0565 0  0,0000 1                TC       G1GTSAVQ       ; RETURN
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Check for end-of-game because someone won. Call ENDOFJOB if there's a
+                          ; winner, otherwise return.
+                          ; Entry:   G1checkWin
+                          ; Inputs:  none
+                          ; Outputs: none
+                          ;-------------------------------------------------------------------------- 
+                          
+00566    0566     00001 0 G1CW_chkval1   DS       1              ; index 0
+00567    0567     00004 0                DS       4              ; index 1
+00570    0570     00007 0                DS       7              ; index 2
+00571    0571     00001 0                DS       1              ; index 3
+00572    0572     00002 0                DS       2              ; index 4
+00573    0573     00003 1                DS       3              ; index 5
+00574    0574     00001 0                DS       1              ; index 6
+00575    0575     00007 0                DS       7              ; index 7
+                          
+00576    0576     00002 0 G1CW_chkval2   DS       2              ; index 0
+00577    0577     00005 1                DS       5              ; index 1
+00600    0600     00010 0                DS       8              ; index 2
+00601    0601     00004 0                DS       4              ; index 3
+00602    0602     00005 1                DS       5              ; index 4
+00603    0603     00006 1                DS       6              ; index 5
+00604    0604     00005 1                DS       5              ; index 6
+00605    0605     00005 1                DS       5              ; index 7
+                          
+00606    0606     00003 1 G1CW_chkval3   DS       3              ; index 0
+00607    0607     00006 1                DS       6              ; index 1
+00610    0610     00011 1                DS       9              ; index 2
+00611    0611     00007 0                DS       7              ; index 3
+00612    0612     00010 0                DS       8              ; index 4
+00613    0613     00011 1                DS       9              ; index 5
+00614    0614     00011 1                DS       9              ; index 6
+00615    0615     00003 1                DS       3              ; index 7
+                          
+00616    0616     00010 0 G1CW_start     DS       8              ; check all 8 ways to win
+                          
+00617    0617 3  0,0001 0 G1checkWin     XCH      Q              
+*** ERROR: G1CWSAVQ undefined.
+00620    0620 5  0,0000 1                TS       G1CWSAVQ       ; save return address
+                          
+00621    0621 3  0,0616 0                XCH      G1CW_start     
+*** ERROR: G1CWINDX undefined.
+00622    0622 5  0,0000 1                TS       G1CWINDX       
+                          
+                          ; Decrementing loop (loop G1CW_start times)
+                          
+*** ERROR: G1CWINDX undefined.
+00623    0623 1  0,0000 0 G1CW_loop      CCS      G1CWINDX       ; checked all possible wins?
+00624    0624 0  0,0626 0                TC       G1CW_chkpos    ; not yet
+*** ERROR: G1CWSAVQ undefined.
+00625    0625 0  0,0000 1                TC       G1CWSAVQ       ; yes, no winner so RETURN
+                          
+*** ERROR: G1CWINDX undefined.
+00626    0626 5  0,0000 1 G1CW_chkpos    TS       G1CWINDX       ; index is DABS of G1CWINDX
+                          
+                          ; Compare the board positions at chkva1 and chkval2
+                          
+*** ERROR: G1CWINDX undefined.
+00627    0627 2  0,0000 0                INDEX    G1CWINDX       
+00630    0630 3  0,0566 1                CAF      G1CW_chkval1   
+00631    0631 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+*** ERROR: G1CWVAL undefined.
+00632    0632 5  0,0000 1                TS       G1CWVAL        ; temporarily save it
+                          
+*** ERROR: G1CWINDX undefined.
+00633    0633 2  0,0000 0                INDEX    G1CWINDX       
+00634    0634 3  0,0576 0                CAF      G1CW_chkval2   
+00635    0635 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+                          
+00636    0636 4  0,0000 0                COM                     ; 1's compliment of A
+*** ERROR: G1CWVAL undefined.
+00637    0637 6  0,0000 1                AD       G1CWVAL        ; put (-A) + val in A
+00640    0640 1  0,0000 0                CCS      A              ; A = DABS
+00641    0641 0  0,0623 0                TC       G1CW_loop      ; >0 (A < val)
+00642    0642 0  0,0645 0                TC       G1CW_chkNext   ; +0 (never happens)
+00643    0643 0  0,0623 0                TC       G1CW_loop      ; <0 (A > val)
+00644    0644 0  0,0645 0                TC       G1CW_chkNext   ; -0 (A == val)
+                          
+                          ; chkval1 and chkval2 positions match.
+                          ; Compare the board positions at chkva1 and chkval3
+                          
+*** ERROR: G1CWINDX undefined.
+00645    0645 2  0,0000 0 G1CW_chkNext   INDEX    G1CWINDX       
+00646    0646 3  0,0606 1                CAF      G1CW_chkval3   
+00647    0647 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+                          
+00650    0650 4  0,0000 0                COM                     ; 1's compliment of A
+*** ERROR: G1CWVAL undefined.
+00651    0651 6  0,0000 1                AD       G1CWVAL        ; put (-A) + val in A
+00652    0652 1  0,0000 0                CCS      A              ; A = DABS
+00653    0653 0  0,0623 0                TC       G1CW_loop      ; >0 (A < val)
+00654    0654 0  0,0657 0                TC       G1CW_foundwin  ; +0 (never happens)
+00655    0655 0  0,0623 0                TC       G1CW_loop      ; <0 (A > val)
+00656    0656 0  0,0657 0                TC       G1CW_foundwin  ; -0 (A == val)
+                          
+*** ERROR: G1CWVAL undefined.
+00657    0657 1  0,0000 0 G1CW_foundwin  CCS      G1CWVAL        ; the winning combo is nonzero, right?
+*** ERROR: ENDOFJOB undefined.
+00660    0660 0  0,0000 1                TC       ENDOFJOB       ; yes, game over
+00661    0661 0  0,0623 0                TC       G1CW_loop      ; no
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Check for end-of-game because all positions are occupied. If the game is
+                          ; over, call ENDOFJOB; otherwise return.
+                          ; Entry:   G1checkTie
+                          ; Inputs:  none
+                          ; Outputs: none
+                          ;-------------------------------------------------------------------------- 
+                          
+00662    0662     00011 1 G1CT_start     DS       9              ; check all nine board positions
+                          
+00663    0663 3  0,0001 0 G1checkTie     XCH      Q              
+*** ERROR: G1CTSAVQ undefined.
+00664    0664 5  0,0000 1                TS       G1CTSAVQ       ; save return address
+                          
+00665    0665 3  0,0662 0                XCH      G1CT_start     
+*** ERROR: G1CTPOS undefined.
+00666    0666 5  0,0000 1                TS       G1CTPOS        
+                          
+                          ; Decrementing loop (loop G1CT_start times)
+                          
+*** ERROR: G1CTPOS undefined.
+00667    0667 1  0,0000 0 G1CT_loop      CCS      G1CTPOS        ; checked all positions?
+00670    0670 0  0,0672 1                TC       G1CT_chkpos    ; not yet
+*** ERROR: ENDOFJOB undefined.
+00671    0671 0  0,0000 1                TC       ENDOFJOB       ; yes, game is a tie.
+                          
+*** ERROR: G1CTPOS undefined.
+00672    0672 3  0,0000 1 G1CT_chkpos    XCH      G1CTPOS        
+00673    0673 0  0,0473 1                TCR      G1getpos       ; check if space is already occupied
+00674    0674 1  0,0000 0                CCS      A              ; space already occupied?
+00675    0675 0  0,0667 0                TC       G1CT_loop      ; yes, check the next space
+*** ERROR: G1CTSAVQ undefined.
+00676    0676 0  0,0000 1                TC       G1CTSAVQ       ; no, not a tie so RETURN
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Get the AGC move. Return the move (1-9) in G1OIVALU.
+                          ; Entry:   G1AGCinput
+                          ; Inputs:  none
+                          ; Outputs: AGC move (range 1-9) in G1OIVALU
+                          ;-------------------------------------------------------------------------- 
+                          
+00677    0677 3  0,0001 0 G1AGCinput     XCH      Q              
+*** ERROR: G1AISAVQ undefined.
+00700    0700 5  0,0000 1                TS       G1AISAVQ       ; save return address
+                          
+                          ; Check for a move to win the game.
+                          
+*** ERROR: TWO undefined.
+00701    0701 3  0,0000 1                CAF      TWO            ; AGC is always player 2
+00702    0702 0  0,1064 1                TCR      G1findmove     
+*** ERROR: G1OIVALU undefined.
+00703    0703 5  0,0000 1                TS       G1OIVALU       ; save the potential move
+00704    0704 1  0,0000 0                CCS      A              
+*** ERROR: G1AISAVQ undefined.
+00705    0705 0  0,0000 1                TC       G1AISAVQ       ; found a move to win so RETURN
+                          
+                          ; Check for a move to block the opponent from winnning.
+                          
+*** ERROR: ONE undefined.
+00706    0706 3  0,0000 1                CAF      ONE            ; opponent is always player 1
+00707    0707 0  0,1064 1                TCR      G1findmove     
+*** ERROR: G1OIVALU undefined.
+00710    0710 5  0,0000 1                TS       G1OIVALU       ; save the potential move
+00711    0711 1  0,0000 0                CCS      A              
+*** ERROR: G1AISAVQ undefined.
+00712    0712 0  0,0000 1                TC       G1AISAVQ       ; found a move to win so RETURN
+                          
+                          ; Check for a move to block the opponent from setting up
+                          ; a dilemma that will force his win.
+                          
+00713    0713 0  0,1145 0                TCR      G1blkmove      
+*** ERROR: G1OIVALU undefined.
+00714    0714 5  0,0000 1                TS       G1OIVALU       ; save the potential move
+00715    0715 1  0,0000 0                CCS      A              
+*** ERROR: G1AISAVQ undefined.
+00716    0716 0  0,0000 1                TC       G1AISAVQ       ; found a move to win so RETURN
+                          
+                          ; Just get any move.
+                          
+00717    0717 0  0,0734 1                TCR      G1AGCmove      
+*** ERROR: G1AISAVQ undefined.
+00720    0720 0  0,0000 1                TC       G1AISAVQ       ; RETURN
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Get the AGC move. Return the move (1-9) in G1OIVALU.
+                          ; Entry:   G1AGCmove
+                          ; Inputs:  none
+                          ; Outputs: AGC move (range 1-9) in G1OIVALU
+                          ;-------------------------------------------------------------------------- 
+                          
+00721    0721     00000 1 G1AM_moves     DS       0              
+00722    0722     00004 0                DS       4              ; try this one last
+00723    0723     00010 0                DS       8              
+00724    0724     00006 1                DS       6              
+00725    0725     00002 0                DS       2              
+00726    0726     00011 1                DS       9              
+00727    0727     00007 0                DS       7              
+00730    0730     00003 1                DS       3              
+00731    0731     00001 0                DS       1              
+00732    0732     00005 1                DS       5              ; try this one first
+                          
+00733    0733     00011 1 G1AM_start     DS       9              ; check all nine possible moves
+                          
+00734    0734 3  0,0001 0 G1AGCmove      XCH      Q              
+*** ERROR: G1AMSAVQ undefined.
+00735    0735 5  0,0000 1                TS       G1AMSAVQ       ; save return address
+                          
+00736    0736 3  0,0733 0                XCH      G1AM_start     
+*** ERROR: G1AMPOS undefined.
+00737    0737 5  0,0000 1                TS       G1AMPOS        
+                          
+                          ; Decrementing loop (loop G1AM_start times)
+                          
+*** ERROR: G1AMPOS undefined.
+00740    0740 1  0,0000 0 G1AM_loop      CCS      G1AMPOS        ; checked all moves?
+00741    0741 0  0,0743 1                TC       G1AM_chkpos    ; not yet
+*** ERROR: G1AMSAVQ undefined.
+00742    0742 0  0,0000 1                TC       G1AMSAVQ       ; yes, RETURN
+                          
+*** ERROR: G1AMPOS undefined.
+00743    0743 3  0,0000 1 G1AM_chkpos    XCH      G1AMPOS        
+00744    0744 2  0,0000 0                INDEX    A              
+00745    0745 3  0,0721 0                CAF      G1AM_moves     
+*** ERROR: G1OIVALU undefined.
+00746    0746 5  0,0000 1                TS       G1OIVALU       ; save the potential move
+                          
+00747    0747 0  0,0473 1                TCR      G1getpos       ; check if space is already occupied
+00750    0750 1  0,0000 0                CCS      A              ; space already occupied?
+00751    0751 0  0,0740 1                TC       G1AM_loop      ; yes, try another move
+*** ERROR: G1AMSAVQ undefined.
+00752    0752 0  0,0000 1                TC       G1AMSAVQ       ; no, so RETURN
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; Return the position code (1-9) for a move that will win the game for you
+                          ; or block a win by your opponent. If the player code (1 or 2) is your code,
+                          ; the return value will be the move you need to win. If the player code is
+                          ; your opponent's code, the return value will be the move you need to block
+                          ; a win by your opponent. If zero is returned, there is no move that will
+                          ; win or block a win.
+                          ; Entry:   G1findmove
+                          ; Inputs:  A contains the player (1 or 2)
+                          ; Outputs: A contains the position code for the move, or 0 if there
+                          ;          is no move.
+                          ;-------------------------------------------------------------------------- 
+                          
+00753    0753     00001 0 G1FM_chkval1   DS       1              
+00754    0754     00002 0                DS       2              
+00755    0755     00003 1                DS       3              
+                          
+00756    0756     00004 0                DS       4              
+00757    0757     00005 1                DS       5              
+00760    0760     00006 1                DS       6              
+                          
+00761    0761     00007 0                DS       7              
+00762    0762     00010 0                DS       8              
+00763    0763     00011 1                DS       9              
+                          
+00764    0764     00001 0                DS       1              
+00765    0765     00004 0                DS       4              
+00766    0766     00007 0                DS       7              
+                          
+00767    0767     00002 0                DS       2              
+00770    0770     00005 1                DS       5              
+00771    0771     00010 0                DS       8              
+                          
+00772    0772     00003 1                DS       3              
+00773    0773     00006 1                DS       6              
+00774    0774     00011 1                DS       9              
+                          
+00775    0775     00001 0                DS       1              
+00776    0776     00005 1                DS       5              
+00777    0777     00011 1                DS       9              
+                          
+01000    1000     00003 1                DS       3              
+01001    1001     00005 1                DS       5              
+01002    1002     00007 0                DS       7              
+                          
+01003    1003     00002 0 G1FM_chkval2   DS       2              
+01004    1004     00003 1                DS       3              
+01005    1005     00001 0                DS       1              
+                          
+01006    1006     00005 1                DS       5              
+01007    1007     00006 1                DS       6              
+01010    1010     00004 0                DS       4              
+                          
+01011    1011     00010 0                DS       8              
+01012    1012     00011 1                DS       9              
+01013    1013     00007 0                DS       7              
+                          
+01014    1014     00004 0                DS       4              
+01015    1015     00007 0                DS       7              
+01016    1016     00001 0                DS       1              
+                          
+01017    1017     00005 1                DS       5              
+01020    1020     00010 0                DS       8              
+01021    1021     00002 0                DS       2              
+                          
+01022    1022     00006 1                DS       6              
+01023    1023     00011 1                DS       9              
+01024    1024     00003 1                DS       3              
+                          
+01025    1025     00005 1                DS       5              
+01026    1026     00011 1                DS       9              
+01027    1027     00001 0                DS       1              
+                          
+01030    1030     00005 1                DS       5              
+01031    1031     00007 0                DS       7              
+01032    1032     00003 1                DS       3              
+                          
+01033    1033     00003 1 G1FM_chkval3   DS       3              
+01034    1034     00001 0                DS       1              
+01035    1035     00002 0                DS       2              
+                          
+01036    1036     00006 1                DS       6              
+01037    1037     00004 0                DS       4              
+01040    1040     00005 1                DS       5              
+                          
+01041    1041     00011 1                DS       9              
+01042    1042     00007 0                DS       7              
+01043    1043     00010 0                DS       8              
+                          
+01044    1044     00007 0                DS       7              
+01045    1045     00001 0                DS       1              
+01046    1046     00004 0                DS       4              
+                          
+01047    1047     00010 0                DS       8              
+01050    1050     00002 0                DS       2              
+01051    1051     00005 1                DS       5              
+                          
+01052    1052     00011 1                DS       9              
+01053    1053     00003 1                DS       3              
+01054    1054     00006 1                DS       6              
+                          
+01055    1055     00011 1                DS       9              
+01056    1056     00001 0                DS       1              
+01057    1057     00005 1                DS       5              
+                          
+01060    1060     00007 0                DS       7              
+01061    1061     00003 1                DS       3              
+01062    1062     00005 1                DS       5              
+                          
+01063    1063     00030 1 G1FM_start     DS       24             ; check all 24 possiblities
+                          
+*** ERROR: G1FMPLYR undefined.
+01064    1064 5  0,0000 1 G1findmove     TS       G1FMPLYR       
+                          
+01065    1065 3  0,0001 0                XCH      Q              
+*** ERROR: G1FMSAVQ undefined.
+01066    1066 5  0,0000 1                TS       G1FMSAVQ       ; save return address
+                          
+01067    1067 3  0,1063 0                XCH      G1FM_start     
+*** ERROR: G1FMINDX undefined.
+01070    1070 5  0,0000 1                TS       G1FMINDX       
+                          
+                          ; Decrementing loop (loop G1FM_start times)
+                          
+*** ERROR: G1FMINDX undefined.
+01071    1071 1  0,0000 0 G1FM_loop      CCS      G1FMINDX       ; checked all possibilities?
+01072    1072 0  0,1074 0                TC       G1FM_chkpos    ; not yet
+01073    1073 0  0,1132 0                TC       G1FM_nomove    ; yes, no recommended move
+                          
+*** ERROR: G1FMINDX undefined.
+01074    1074 5  0,0000 1 G1FM_chkpos    TS       G1FMINDX       ; index is DABS of G1FMINDX
+                          
+                          ; Compare the board positions at chkva1 and chkval2
+                          
+*** ERROR: G1FMINDX undefined.
+01075    1075 2  0,0000 0                INDEX    G1FMINDX       
+01076    1076 3  0,0753 0                CAF      G1FM_chkval1   
+01077    1077 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+*** ERROR: G1FMVAL undefined.
+01100    1100 5  0,0000 1                TS       G1FMVAL        ; temporarily save it
+                          
+*** ERROR: G1FMINDX undefined.
+01101    1101 2  0,0000 0                INDEX    G1FMINDX       
+01102    1102 3  0,1003 0                CAF      G1FM_chkval2   
+01103    1103 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+                          
+01104    1104 4  0,0000 0                COM                     ; 1's compliment of A
+*** ERROR: G1FMVAL undefined.
+01105    1105 6  0,0000 1                AD       G1FMVAL        ; put (-A) + val in A
+01106    1106 1  0,0000 0                CCS      A              ; A = DABS
+01107    1107 0  0,1071 0                TC       G1FM_loop      ; >0 (A < val)
+01110    1110 0  0,1113 0                TC       G1FM_chkNext   ; +0 (never happens)
+01111    1111 0  0,1071 0                TC       G1FM_loop      ; <0 (A > val)
+01112    1112 0  0,1113 0                TC       G1FM_chkNext   ; -0 (A == val)
+                          
+                          ; chkval1 and chkval2 positions match.
+                          ; Compare them to player.
+                          
+*** ERROR: G1FMPLYR undefined.
+01113    1113 4  0,0000 0 G1FM_chkNext   CS       G1FMPLYR       ; 1's compliment of player
+*** ERROR: G1FMVAL undefined.
+01114    1114 6  0,0000 1                AD       G1FMVAL        ; put (-A) + val in A
+01115    1115 1  0,0000 0                CCS      A              ; A = DABS
+01116    1116 0  0,1071 0                TC       G1FM_loop      ; >0 (A < val)
+01117    1117 0  0,1122 1                TC       G1FM_chkLast   ; +0 (never happens)
+01120    1120 0  0,1071 0                TC       G1FM_loop      ; <0 (A > val)
+01121    1121 0  0,1122 1                TC       G1FM_chkLast   ; -0 (A == val)
+                          
+                          ; chkval1 and chkval2 positions match and are equal to player.
+                          ; Check if the third position in the sequence is unoccupied.
+                          
+*** ERROR: G1FMINDX undefined.
+01122    1122 2  0,0000 0 G1FM_chkLast   INDEX    G1FMINDX       
+01123    1123 3  0,1033 0                CAF      G1FM_chkval3   
+01124    1124 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+                          
+01125    1125 1  0,0000 0                CCS      A              ; last position unoccupied?
+01126    1126 0  0,1071 0                TC       G1FM_loop      ; no, go check another position
+*** ERROR: G1FMINDX undefined.
+01127    1127 2  0,0000 0                INDEX    G1FMINDX       ; yes, found the recommended move
+01130    1130 3  0,1033 0                CAF      G1FM_chkval3   
+*** ERROR: G1FMSAVQ undefined.
+01131    1131 0  0,0000 1                TC       G1FMSAVQ       ; RETURN		
+                          
+*** ERROR: ZERO undefined.
+01132    1132 3  0,0000 1 G1FM_nomove    CAF      ZERO           ; no recommended move
+*** ERROR: G1FMSAVQ undefined.
+01133    1133 0  0,0000 1                TC       G1FMSAVQ       ; RETURN
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; If the opponent has occupied a corner of the board, occupy the opposite
+                          ; corner if unoccupied.
+                          ; Entry:   G1blkmove
+                          ; Inputs:  None.
+                          ; Outputs: A contains the position code for the move, or 0 if there
+                          ;          is no move.
+                          ;-------------------------------------------------------------------------- 
+                          
+01134    1134     00001 0 G1BM_chkval1   DS       1              
+01135    1135     00011 1                DS       9              
+01136    1136     00003 1                DS       3              
+01137    1137     00007 0                DS       7              
+                          
+01140    1140     00011 1 G1BM_chkval2   DS       9              
+01141    1141     00001 0                DS       1              
+01142    1142     00007 0                DS       7              
+01143    1143     00003 1                DS       3              
+                          
+                          
+01144    1144     00004 0 G1BM_start     DS       4              ; check all 4 possiblities
+                          
+01145    1145 3  0,0001 0 G1blkmove      XCH      Q              
+*** ERROR: G1BMSAVQ undefined.
+01146    1146 5  0,0000 1                TS       G1BMSAVQ       ; save return address
+                          
+01147    1147 3  0,1144 1                XCH      G1BM_start     
+*** ERROR: G1BMINDX undefined.
+01150    1150 5  0,0000 1                TS       G1BMINDX       
+                          
+                          ; Decrementing loop (loop G1BM_start times)
+                          
+*** ERROR: G1BMINDX undefined.
+01151    1151 1  0,0000 0 G1BM_loop      CCS      G1BMINDX       ; checked all possibilities?
+01152    1152 0  0,1154 0                TC       G1BM_chkpos    ; not yet
+01153    1153 0  0,1177 1                TC       G1BM_nomove    ; yes, no recommended move
+                          
+*** ERROR: G1BMINDX undefined.
+01154    1154 5  0,0000 1 G1BM_chkpos    TS       G1BMINDX       ; index is DABS of G1BMINDX
+                          
+                          ; Compare the board positions at chkva1 and chkval2
+                          
+*** ERROR: G1BMINDX undefined.
+01155    1155 2  0,0000 0                INDEX    G1BMINDX       
+01156    1156 3  0,1134 0                CAF      G1BM_chkval1   
+01157    1157 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+                          
+01160    1160 4  0,0000 0                COM                     ; 1's compliment of A
+*** ERROR: ONE undefined.
+01161    1161 6  0,0000 1                AD       ONE            ; put (-A) + val in A
+01162    1162 1  0,0000 0                CCS      A              ; A = DABS
+01163    1163 0  0,1151 0                TC       G1BM_loop      ; >0 (A < val)
+01164    1164 0  0,1167 0                TC       G1BM_chkNext   ; +0 (never happens)
+01165    1165 0  0,1151 0                TC       G1BM_loop      ; <0 (A > val)
+01166    1166 0  0,1167 0                TC       G1BM_chkNext   ; -0 (A == val)
+                          
+                          ; The opponent occupies the corner.
+                          
+*** ERROR: G1BMINDX undefined.
+01167    1167 2  0,0000 0 G1BM_chkNext   INDEX    G1BMINDX       
+01170    1170 3  0,1140 0                CAF      G1BM_chkval2   
+01171    1171 0  0,0473 1                TCR      G1getpos       ; read the board position into A
+                          
+01172    1172 1  0,0000 0                CCS      A              ; opposite corner unoccupied?
+01173    1173 0  0,1151 0                TC       G1BM_loop      ; no, go check another position
+*** ERROR: G1BMINDX undefined.
+01174    1174 2  0,0000 0                INDEX    G1BMINDX       ; yes, found the recommended move
+01175    1175 3  0,1140 0                CAF      G1BM_chkval2   
+*** ERROR: G1BMSAVQ undefined.
+01176    1176 0  0,0000 1                TC       G1BMSAVQ       ; RETURN		
+                          
+*** ERROR: ZERO undefined.
+01177    1177 3  0,0000 1 G1BM_nomove    CAF      ZERO           ; no recommended move
+*** ERROR: G1BMSAVQ undefined.
+01200    1200 0  0,0000 1                TC       G1BMSAVQ       ; RETURN
+
+Assembly complete. Errors = 215
+
+Symbol table:
+G2MAX          000000   G2MASKT1       000001   P77            000002   
+G2NXTMOV       000005   G2ADDNUM       000053   G2DISPLY       000055   
+G2DSDONE       000101   G2MASK         000110   G2MASKA        000111   
+G2GETINP       000112   G2ILOOP        000114   G2DLOOP        000117   
+G2SHR3         000172   G2END1         000202   G2END2         000203   
+G2T100         000204   G2T300         000205   G2PRIO         000206   
+G2TASK0        000207   G2TASK1        000213   G2TASK2        000217   
+P78            000223   P79            000226   G1_initialize  000230   
+G1_gameLoop    000232   G1_indexGOTO   000234   G1_clearBoard  000240   
+G1_player1Moves 000247   G1_checkPlayer1 000253   G1_player2Moves 000266   
+G1_player2human 000272   G1_checkPlayer2 000276   G1_showBoard   000310   
+G1_time        000317   G1_task        000320   G1_prio        000324   
+G1DSNVCD       000325   G1DSADDR       000326   G1DSTCDR       000327   
+G1DISPLY       000330   G1DSRSTR       000334   G1OINVCD       000343   
+G1OIADDR       000344   G1OITCDR       000345   G1INPUT        000346   
+G1OIRSTR       000352   G1OIWAIT       000361   G1setpos       000365   
+G1ST_GOTO      000375   G1STPOS1       000407   G1STPOS2       000411   
+G1STPOS3       000413   G1STPOS4       000415   G1STPOS5       000417   
+G1STPOS6       000421   G1STPOS7       000423   G1STPOS8       000425   
+G1STPOS9       000427   G1ST_SL9       000431   G1ST_SL6       000434   
+G1ST_SL3       000437   G1ST_maskR1    000443   G1ST_maskR2    000452   
+G1ST_maskR3    000461   G1GT_maskL     000470   G1GT_maskM     000471   
+G1GT_maskR     000472   G1getpos       000473   G1GT_GOTO      000501   
+G1GTPOS1       000513   G1GTPOS2       000516   G1GTPOS3       000521   
+G1GTPOS4       000524   G1GTPOS5       000527   G1GTPOS6       000532   
+G1GTPOS7       000535   G1GTPOS8       000540   G1GTPOS9       000543   
+G1GT_SR9       000546   G1GT_SR6       000550   G1GT_SR3       000552   
+G1GT_SR9A      000554   G1GT_SR6A      000557   G1GT_SR3A      000562   
+G1CW_chkval1   000566   G1CW_chkval2   000576   G1CW_chkval3   000606   
+G1CW_start     000616   G1checkWin     000617   G1CW_loop      000623   
+G1CW_chkpos    000626   G1CW_chkNext   000645   G1CW_foundwin  000657   
+G1CT_start     000662   G1checkTie     000663   G1CT_loop      000667   
+G1CT_chkpos    000672   G1AGCinput     000677   G1AM_moves     000721   
+G1AM_start     000733   G1AGCmove      000734   G1AM_loop      000740   
+G1AM_chkpos    000743   G1FM_chkval1   000753   G1FM_chkval2   001003   
+G1FM_chkval3   001033   G1FM_start     001063   G1findmove     001064   
+G1FM_loop      001071   G1FM_chkpos    001074   G1FM_chkNext   001113   
+G1FM_chkLast   001122   G1FM_nomove    001132   G1BM_chkval1   001134   
+G1BM_chkval2   001140   G1BM_start     001144   G1blkmove      001145   
+G1BM_loop      001151   G1BM_chkpos    001154   G1BM_chkNext   001167   
+G1BM_nomove    001177   A              000000   TIME1          000036   
+SR             000021   SL             000023   Q              000001   

@@ -1,0 +1,1 @@
+These files are my original implementations of exec and waitlist, developed as stand-alone applications. They were later integrated into COLOSSUS. The modified versions in COLOSSUS may have features and fixes not present in these early versions.

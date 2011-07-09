@@ -1,0 +1,878 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;========================================================================== 
+                          ; PINBALL GAME (file:bank40_1.asm)
+                          ; 
+                          ; AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.310-317.
+                          ;========================================================================== 
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; CHARIN -- PROCESS KEYBOARD CHARACTER FROM KEYRUPT
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.310.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          CHARIN         EQU      *              
+*** ERROR: ONE undefined.
+00000    0000 3  0,0000 1                CAF      ONE            ; block display syst
+*** ERROR: DSPLOCK undefined.
+00001    0001 3  0,0000 1                XCH      DSPLOCK        ; make dsp syst busy, but save old
+*** ERROR: _2122REG undefined.
+00002    0002 5  0,0000 1                TS       _2122REG       ; C(DSPLOCK) for error light reset
+*** ERROR: CADRSTOR undefined.
+00003    0003 1  0,0000 0                CCS      CADRSTOR       ; all keys except ER turn on KR lite if
+00004    0004 0  0,0006 1                TC       *+2            ; CADRSTOR is full. This reminds operator
+00005    0005 0  0,0016 0                TC       CHARIN2        ; to re-establish a flashing display
+00006    0006 4  0,0062 1                CS       ELRCODE1       ; which he has obscured with displays of
+*** ERROR: MPAC undefined.
+00007    0007 6  0,0000 1                AD       MPAC           ; his own (see remarks preceding routine
+                          ; VBRELDSP).
+                          
+00010    0010 1  0,0000 0                CCS      A              ; was BZF CHARIN2 in Block II
+00011    0011 0  0,0015 0                TC       *+4            ; >0
+00012    0012 0  0,0014 1                TC       *+2            ; +0
+00013    0013 0  0,0015 0                TC       *+2            ; <0
+00014    0014 0  0,0016 0                TC       CHARIN2        ; -0
+                          
+*** ERROR: RELDSPON undefined.
+00015    0015 0  0,0000 1                TC       RELDSPON       
+                          
+                          CHARIN2        EQU      *              
+*** ERROR: MPAC undefined.
+00016    0016 3  0,0000 1                XCH      MPAC           
+*** ERROR: CHAR undefined.
+00017    0017 5  0,0000 1                TS       CHAR           
+00020    0020 2  0,0000 0                INDEX    A              
+00021    0021 0  0,0022 1                TC       *+1            ; input_code function
+*** ERROR: CHARALRM undefined.
+00022    0022 0  0,0000 1                TC       CHARALRM       ; 0
+00023    0023 0  0,0101 1                TC       NUM            ; 1
+00024    0024 0  0,0101 1                TC       NUM            ; 2
+00025    0025 0  0,0101 1                TC       NUM            ; 3
+00026    0026 0  0,0101 1                TC       NUM            ; 4
+00027    0027 0  0,0101 1                TC       NUM            ; 5
+00030    0030 0  0,0101 1                TC       NUM            ; 6
+00031    0031 0  0,0101 1                TC       NUM            ; 7
+00032    0032 0  0,0065 1                TC       _89TEST        
+00033    0033 0  0,0065 1                TC       _89TEST        ; 11		9
+*** ERROR: CHARALRM undefined.
+00034    0034 0  0,0000 1                TC       CHARALRM       ; 12
+*** ERROR: CHARALRM undefined.
+00035    0035 0  0,0000 1                TC       CHARALRM       ; 13
+*** ERROR: CHARALRM undefined.
+00036    0036 0  0,0000 1                TC       CHARALRM       ; 14
+*** ERROR: CHARALRM undefined.
+00037    0037 0  0,0000 1                TC       CHARALRM       ; 15
+*** ERROR: CHARALRM undefined.
+00040    0040 0  0,0000 1                TC       CHARALRM       ; 16
+*** ERROR: CHARALRM undefined.
+00041    0041 0  0,0000 1                TC       CHARALRM       ; 17
+00042    0042 0  0,0077 1                TC       NUM-2          ; 20		0
+00043    0043 0  0,0272 0                TC       VERB           ; 21		VERB
+*** ERROR: ERROR undefined.
+00044    0044 0  0,0000 1                TC       ERROR          ; 22		ERROR LIGHT RESET
+*** ERROR: CHARALRM undefined.
+00045    0045 0  0,0000 1                TC       CHARALRM       ; 23
+*** ERROR: CHARALRM undefined.
+00046    0046 0  0,0000 1                TC       CHARALRM       ; 24
+*** ERROR: CHARALRM undefined.
+00047    0047 0  0,0000 1                TC       CHARALRM       ; 25
+*** ERROR: CHARALRM undefined.
+00050    0050 0  0,0000 1                TC       CHARALRM       ; 26
+*** ERROR: CHARALRM undefined.
+00051    0051 0  0,0000 1                TC       CHARALRM       ; 27
+*** ERROR: CHARALRM undefined.
+00052    0052 0  0,0000 1                TC       CHARALRM       ; 30
+*** ERROR: VBRELDSP undefined.
+00053    0053 0  0,0000 1                TC       VBRELDSP       ; 31		KEY RELEASE
+00054    0054 0  0,0326 0                TC       POSGN          ; 32		+
+00055    0055 0  0,0312 1                TC       NEGSGN         ; 33		-
+00056    0056 0  0,0063 1                TC       ENTERJMP       ; 34		ENTER
+*** ERROR: CHARALRM undefined.
+00057    0057 0  0,0000 1                TC       CHARALRM       ; 35
+00060    0060 0  0,0412 0                TC       CLEAR          ; 36		CLEAR
+00061    0061 0  0,0306 1                TC       NOUN           ; 37		NOUN
+                          
+00062    0062     00022 1 ELRCODE1       DS       %22            
+*** ERROR: POSTJUMP undefined.
+00063    0063 0  0,0000 1 ENTERJMP       TC       POSTJUMP       
+*** ERROR: ENTER undefined.
+00064    0064     00000 1                DS       ENTER          
+                          
+                          _89TEST        EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00065    0065 1  0,0000 0                CCS      DSPCOUNT       
+00066    0066 0  0,0072 1                TC       *+4            ; >0
+00067    0067 0  0,0072 1                TC       *+3            ; +0
+*** ERROR: ENDOFJOB undefined.
+00070    0070 0  0,0000 1                TC       ENDOFJOB       ; <0, block data in if DSPCOUNT is <0 or -0
+*** ERROR: ENDOFJOB undefined.
+00071    0071 0  0,0000 1                TC       ENDOFJOB       ; -0
+                          
+*** ERROR: THREE undefined.
+00072    0072 3  0,0000 1                CAF      THREE          
+*** ERROR: DECBRNCH undefined.
+00073    0073 7  0,0000 0                MASK     DECBRNCH       
+00074    0074 1  0,0000 0                CCS      A              
+00075    0075 0  0,0101 1                TC       NUM            ; if DECBRNCH is +, 8 or 9 OK
+*** ERROR: CHARALRM undefined.
+00076    0076 0  0,0000 1                TC       CHARALRM       ; if DECBRNCH is +0, reject 8 or 9
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; NUM -- PROCESS NUMERICAL KEYBOARD CHARACTER
+                          ; Assembles octal, 3 bits at a time. For decimal, it converts incoming word
+                          ; as a fraction, keeping results to DP (double precision).
+                          ; Octal results are left in XREG, YREG, or ZREG. High part of DEC in XREG,
+                          ; YREG, ZREG; the low parts in XREGLP, YREGLP, or ZREGLP).
+                          ; DECBRNCH is left at +0 for octal, +1 for +DEC, +2 for -DEC.
+                          ; If DSPCOUNT was left -, no more data is accepted.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.311.
+                          ;-------------------------------------------------------------------------- 
+                          
+*** ERROR: ZERO undefined.
+00077    0077 3  0,0000 1                CAF      ZERO           
+*** ERROR: CHAR undefined.
+00100    0100 5  0,0000 1                TS       CHAR           
+                          
+                          NUM            EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00101    0101 1  0,0000 0                CCS      DSPCOUNT       
+00102    0102 0  0,0106 0                TC       *+4            ; >0
+00103    0103 0  0,0106 0                TC       *+3            ; +0
+00104    0104 0  0,0105 0                TC       *+1            ; <0, block datain if DSPCOUNT is <0 or -0
+*** ERROR: ENDOFJOB undefined.
+00105    0105 0  0,0000 1                TC       ENDOFJOB       ; -0
+00106    0106 0  0,0241 0                TC       GETINREL       
+*** ERROR: CLPASS undefined.
+00107    0107 1  0,0000 0                CCS      CLPASS         ; if CLPASS is >0 or +0, make it +0
+*** ERROR: ZERO undefined.
+00110    0110 3  0,0000 1                CAF      ZERO           
+*** ERROR: CLPASS undefined.
+00111    0111 5  0,0000 1                TS       CLPASS         
+00112    0112 0  0,0113 1                TC       *+1            
+*** ERROR: CHAR undefined.
+00113    0113 2  0,0000 0                INDEX    CHAR           
+*** ERROR: RELTAB undefined.
+00114    0114 3  0,0000 1                CAF      RELTAB         
+*** ERROR: LOW5 undefined.
+00115    0115 7  0,0000 0                MASK     LOW5           
+*** ERROR: CODE undefined.
+00116    0116 5  0,0000 1                TS       CODE           
+*** ERROR: ZERO undefined.
+00117    0117 3  0,0000 1                CAF      ZERO           ; was CA DSPCOUNT in Block II
+*** ERROR: DSPCOUNT undefined.
+00120    0120 6  0,0000 1                AD       DSPCOUNT       
+*** ERROR: COUNT undefined.
+00121    0121 5  0,0000 1                TS       COUNT          
+*** ERROR: DSPIN undefined.
+00122    0122 0  0,0000 1                TC       DSPIN          
+*** ERROR: THREE undefined.
+00123    0123 3  0,0000 1                CAF      THREE          
+*** ERROR: DECBRNCH undefined.
+00124    0124 7  0,0000 0                MASK     DECBRNCH       
+00125    0125 1  0,0000 0                CCS      A              ; +0=octal, +1=+dec, +2=-dec
+00126    0126 0  0,0137 1                TC       DECTOBIN       ; >0
+*** ERROR: INREL undefined.
+00127    0127 2  0,0000 0                INDEX    INREL          ; +0 (octal)
+*** ERROR: VERBREG undefined.
+00130    0130 3  0,0000 1                XCH      VERBREG        
+00131    0131 5  0,0022 1                TS       CYL            
+00132    0132 4  0,0022 0                CS       CYL            
+00133    0133 4  0,0022 0                CS       CYL            
+00134    0134 3  0,0022 1                XCH      CYL            
+*** ERROR: CHAR undefined.
+00135    0135 6  0,0000 1                AD       CHAR           
+00136    0136 0  0,0155 0                TC       ENDNMTST       
+                          
+                          DECTOBIN       EQU      *              
+*** ERROR: INREL undefined.
+00137    0137 2  0,0000 0                INDEX    INREL          
+*** ERROR: VERBREG undefined.
+00140    0140 3  0,0000 1                XCH      VERBREG        
+*** ERROR: MPAC undefined.
+00141    0141 5  0,0000 1                TS       MPAC           ; sum x 2EXP-14 in MPAC
+*** ERROR: ZERO undefined.
+00142    0142 3  0,0000 1                CAF      ZERO           
+*** ERROR: MPAC undefined.
+00143    0143 5  0,0001 0                TS       MPAC+1         
+*** ERROR: TEN undefined.
+00144    0144 3  0,0000 1                CAF      TEN            ; 10 x 3EXP-14
+*** ERROR: SHORTMP undefined.
+00145    0145 0  0,0000 1                TC       SHORTMP        ; 10SUM x 2EXP-28 in MPAC, MPAC+1
+                          
+*** ERROR: MPAC undefined.
+00146    0146 3  0,0001 0                XCH      MPAC+1         
+*** ERROR: CHAR undefined.
+00147    0147 6  0,0000 1                AD       CHAR           
+*** ERROR: MPAC undefined.
+00150    0150 5  0,0001 0                TS       MPAC+1         
+00151    0151 0  0,0155 0                TC       ENDNMTST       ; no overflow
+                          
+*** ERROR: MPAC undefined.
+00152    0152 6  0,0000 1                AD       MPAC           ; overflow, must be 5th character
+*** ERROR: MPAC undefined.
+00153    0153 5  0,0000 1                TS       MPAC           
+                          
+00154    0154 0  0,0176 1                TC       DECEND         
+                          
+                          ENDNMTST       EQU      *              
+*** ERROR: INREL undefined.
+00155    0155 2  0,0000 0                INDEX    INREL          
+*** ERROR: VERBREG undefined.
+00156    0156 5  0,0000 1                TS       VERBREG        
+*** ERROR: DSPCOUNT undefined.
+00157    0157 4  0,0000 0                CS       DSPCOUNT       
+*** ERROR: INREL undefined.
+00160    0160 2  0,0000 0                INDEX    INREL          
+00161    0161 6  0,0232 1                AD       CRITCON        
+                          
+00162    0162 1  0,0000 0                CCS      A              ; was BZF ENDNUM in Block II
+00163    0163 0  0,0167 1                TC       *+4            ; >0
+00164    0164 0  0,0166 0                TC       *+2            ; +0, DSPCOUNT = CRITCON
+00165    0165 0  0,0167 1                TC       *+2            ; <0
+00166    0166 0  0,0170 1                TC       ENDNUM         ; -0
+                          
+00167    0167 0  0,0227 0                TC       MORNUM         ; - , DSPCOUNT G/ CRITCON
+                          
+                          ENDNUM         EQU      *              
+*** ERROR: THREE undefined.
+00170    0170 3  0,0000 1                CAF      THREE          
+*** ERROR: DECBRNCH undefined.
+00171    0171 7  0,0000 0                MASK     DECBRNCH       
+00172    0172 1  0,0000 0                CCS      A              
+00173    0173 0  0,0176 1                TC       DECEND         
+                          
+                          ENDALL         EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00174    0174 4  0,0000 0                CS       DSPCOUNT       ; block NUMIN by placing DSPCOUNT
+00175    0175 0  0,0230 0                TC       MORNUM+1       ; negatively
+                          
+                          
+                          
+                          
+                          DECEND         EQU      *              
+*** ERROR: ONE undefined.
+00176    0176 4  0,0000 0                CS       ONE            
+*** ERROR: INREL undefined.
+00177    0177 6  0,0000 1                AD       INREL          
+                          
+00200    0200 1  0,0000 0                CCS      A              ; was BZMF ENDALL in Block II
+00201    0201 0  0,0205 0                TC       *+4            ; >0
+00202    0202 0  0,0204 1                TC       *+2            ; +0, INREL=0,1(VBREG,NNREG), leave whole
+00203    0203 0  0,0204 1                TC       *+1            ; <0, INREL=0,1(VBREG,NNREG), leave whole
+00204    0204 0  0,0174 0                TC       ENDALL         ; -0, INREL=0,1(VBREG,NNREG), leave whole
+                          
+*** ERROR: DMP undefined.
+00205    0205 0  0,0000 1                TC       DMP            ; if INREL=2,3,4(R1,R2,R3), convert to frac
+                          ; mult sum x2EXP-28 in MPAC, MPAC+1 by
+00206    0206     00237 1                ADRES    DECON          ; 2EXP14/10EPX5. Gives(sum/10EXP5)x2EXP-14
+                          ; in MPAC, +1, +2
+*** ERROR: THREE undefined.
+00207    0207 3  0,0000 1                CAF      THREE          
+*** ERROR: DECBRNCH undefined.
+00210    0210 7  0,0000 0                MASK     DECBRNCH       
+00211    0211 2  0,0000 0                INDEX    A              
+00212    0212 0  0,0212 0                TC       *+0            
+00213    0213 0  0,0220 1                TC       PDECSGN        
+                          
+*** ERROR: MPAC undefined.
+00214    0214 4  0,0001 1                CS       MPAC+1         ; - case (was DCS, DXCH in Block II)
+*** ERROR: MPAC undefined.
+00215    0215 5  0,0001 0                TS       MPAC+1         
+*** ERROR: MPAC undefined.
+00216    0216 4  0,0002 1                CS       MPAC+2         
+*** ERROR: MPAC undefined.
+00217    0217 5  0,0002 0                TS       MPAC+2         
+                          
+                          PDECSGN        EQU      *              
+*** ERROR: MPAC undefined.
+00220    0220 3  0,0002 0                XCH      MPAC+2         
+*** ERROR: INREL undefined.
+00221    0221 2  0,0000 0                INDEX    INREL          
+*** ERROR: XREGLP undefined.
+00222    0222 5 17,7775 0                TS       XREGLP-2       
+*** ERROR: MPAC undefined.
+00223    0223 3  0,0001 0                XCH      MPAC+1         
+*** ERROR: INREL undefined.
+00224    0224 2  0,0000 0                INDEX    INREL          
+*** ERROR: VERBREG undefined.
+00225    0225 5  0,0000 1                TS       VERBREG        
+00226    0226 0  0,0174 0                TC       ENDALL         
+                          
+                          MORNUM         EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00227    0227 1  0,0000 0                CCS      DSPCOUNT       ; decrement DSPCOUNT
+*** ERROR: DSPCOUNT undefined.
+00230    0230 5  0,0000 1                TS       DSPCOUNT       
+*** ERROR: ENDOFJOB undefined.
+00231    0231 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          CRITCON        EQU      *              
+00232    0232     00022 1                DS       %22            ; dec 18
+00233    0233     00020 0                DS       %20            ; dec 16
+00234    0234     00012 1                DS       %12            ; dec 10
+00235    0235     00005 1                DS       %5             
+00236    0236     00000 1                DS       %0             
+                          
+                          DECON          EQU      *              
+00237    0237     05174 0                DS       %05174         ; 2EXP14/10EXP5 = .16384 DEC
+00240    0240     13261 0                DS       %13261         
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; GETINREL
+                          ; Gets proper data register relative address for current C(DSPCOUNT) and
+                          ; puts into INREL: +0 VERBREG, 1 NOUNREG, 2 XREG, 3 YREG, 4 ZREG
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.313.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          GETINREL       EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00241    0241 2  0,0000 0                INDEX    DSPCOUNT       
+00242    0242 3  0,0245 1                CAF      INRELTAB       
+*** ERROR: INREL undefined.
+00243    0243 5  0,0000 1                TS       INREL          ; (A TEMP, REG)
+00244    0244 0  0,0001 0                TC       Q              
+                          
+                          INRELTAB       EQU      *              
+00245    0245     00004 0                DS       %4             ; R3D5, 0 = DSPCOUNT
+00246    0246     00004 0                DS       %4             ; R3D4, 1
+00247    0247     00004 0                DS       %4             ; R3D3, 2
+00250    0250     00004 0                DS       %4             ; R3D2, 3
+00251    0251     00004 0                DS       %4             ; R3D1, 4		
+00252    0252     00003 1                DS       %3             ; R2D5, 5
+00253    0253     00003 1                DS       %3             ; R2D4, 6
+00254    0254     00003 1                DS       %3             ; R2D3, 7
+00255    0255     00003 1                DS       %3             ; R2D2, 8D
+00256    0256     00003 1                DS       %3             ; R2D1, 9D
+00257    0257     00002 0                DS       %2             ; R1D5, 10D
+00260    0260     00002 0                DS       %2             ; R1D4, 11D
+00261    0261     00002 0                DS       %2             ; R1D3, 12D
+00262    0262     00002 0                DS       %2             ; R1D2, 13D
+00263    0263     00002 0                DS       %2             ; R1D1, 14D
+00264    0264 0  0,0271 0                TC       CCSHOLE        ; no DSPCOUNT numbers
+00265    0265     00001 0                DS       %1             ; ND2, 16D
+00266    0266     00001 0                DS       %1             ; ND1, 17D
+00267    0267     00000 1                DS       %0             ; VD2, 18D
+00270    0270     00000 1                DS       %0             ; VD1, 19D
+                          
+                          
+*** ERROR: ENDOFJOB undefined.
+00271    0271 0  0,0000 1 CCSHOLE        TC       ENDOFJOB       ; can't find this anywhere; best guess
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; VERB
+                          ; Verb key was pressed; prepare to enter a 2 decimal digit verb.
+                          ; Blank the verb display and call ENDOFJOB.
+                          ; 
+                          ; NOUN
+                          ; Noun key was pressed; prepare to enter a 2 decimal digit noun.
+                          ; Blank the noun display and call ENDOFJOB.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.314.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          VERB           EQU      *              
+*** ERROR: ZERO undefined.
+00272    0272 3  0,0000 1                CAF      ZERO           
+*** ERROR: VERBREG undefined.
+00273    0273 5  0,0000 1                TS       VERBREG        
+*** ERROR: VD1 undefined.
+00274    0274 3  0,0000 1                CAF      VD1            
+                          
+                          NVCOM          EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00275    0275 5  0,0000 1                TS       DSPCOUNT       
+00276    0276 0  0,0540 0                TC       _2BLANK        
+*** ERROR: ONE undefined.
+00277    0277 3  0,0000 1                CAF      ONE            
+*** ERROR: DECBRNCH undefined.
+00300    0300 5  0,0000 1                TS       DECBRNCH       ; set for dec V/N code
+*** ERROR: ZERO undefined.
+00301    0301 3  0,0000 1                CAF      ZERO           
+*** ERROR: REQRET undefined.
+00302    0302 5  0,0000 1                TS       REQRET         ; set for ENTPAS0
+*** ERROR: ENDINST undefined.
+00303    0303 3  0,0000 1                CAF      ENDINST        ; if DSPALARM occurs before first ENTPAS0
+*** ERROR: ENTRET undefined.
+00304    0304 5  0,0000 1                TS       ENTRET         ; or NVSUB, ENTRET must already be set
+                          ; to TC ENDOFJOB
+*** ERROR: ENDOFJOB undefined.
+00305    0305 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          NOUN           EQU      *              
+*** ERROR: ZERO undefined.
+00306    0306 3  0,0000 1                CAF      ZERO           
+*** ERROR: NOUNREG undefined.
+00307    0307 5  0,0000 1                TS       NOUNREG        
+*** ERROR: ND1 undefined.
+00310    0310 3  0,0000 1                CAF      ND1            ; ND1, OCT 21 (DEC 17)
+00311    0311 0  0,0275 1                TC       NVCOM          
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; NEGSGN
+                          ; Turn the minus sign on for the register selected by DSPCOUNT.
+                          ; Call ENDOFJOB when done.
+                          ; 
+                          ; POSGN
+                          ; Turn the plus sign on for the register selected by DSPCOUNT.
+                          ; Call ENDOFJOB when done.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.314.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          NEGSGN         EQU      *              
+00312    0312 0  0,0367 0                TC       SIGNTEST       
+00313    0313 0  0,0353 1                TC       M_ON           
+*** ERROR: TWO undefined.
+00314    0314 3  0,0000 1                CAF      TWO            
+                          
+                          BOTHSGN        EQU      *              
+*** ERROR: INREL undefined.
+00315    0315 2  0,0000 0                INDEX    INREL          ; set DEC compu bit to 1 (in DECBRNCH)
+*** ERROR: BIT7 undefined.
+00316    0316 6  0,0000 1                AD       BIT7           ; Bit 5 for R1, bit 4 for R2, bit 3 for R3
+*** ERROR: DECBRNCH undefined.
+00317    0317 6  0,0000 1                AD       DECBRNCH       
+*** ERROR: DECBRNCH undefined.
+00320    0320 5  0,0000 1                TS       DECBRNCH       
+                          
+                          PIXCLPAS       EQU      *              
+*** ERROR: CLPASS undefined.
+00321    0321 1  0,0000 0                CCS      CLPASS         ; if CLPASS is + or +0, make it +0
+*** ERROR: ZERO undefined.
+00322    0322 3  0,0000 1                CAF      ZERO           
+*** ERROR: CLPASS undefined.
+00323    0323 5  0,0000 1                TS       CLPASS         
+00324    0324 0  0,0325 0                TC       *+1            
+*** ERROR: ENDOFJOB undefined.
+00325    0325 0  0,0000 1                TC       ENDOFJOB       
+                          
+                          POSGN          EQU      *              
+00326    0326 0  0,0367 0                TC       SIGNTEST       
+00327    0327 0  0,0332 0                TC       P_ON           
+*** ERROR: ONE undefined.
+00330    0330 3  0,0000 1                CAF      ONE            
+00331    0331 0  0,0315 0                TC       BOTHSGN        
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; P_ON
+                          ; Turn the plus sign on for register selected by DSPCOUNT. 
+                          ; Return when done.
+                          ; 
+                          ; M_ON
+                          ; Turn the minus sign on for register selected by DSPCOUNT. 
+                          ; Return when done.
+                          
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.314.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          P_ON           EQU      *              
+00332    0332 3  0,0001 0                XCH      Q              ; was LXCH Q in block II
+*** ERROR: LXCH_LPRET undefined.
+00333    0333 5  0,0000 1                TS       LXCH_LPRET     ; save return address in faux LP
+                          
+00334    0334 0  0,0241 0                TC       GETINREL       
+*** ERROR: INREL undefined.
+00335    0335 2  0,0000 0                INDEX    INREL          
+00336    0336 3  0,0362 0                CAF      SGNTAB-2       
+*** ERROR: SGNOFF undefined.
+00337    0337 5  0,0000 1                TS       SGNOFF         
+*** ERROR: ONE undefined.
+00340    0340 6  0,0000 1                AD       ONE            
+*** ERROR: SGNON undefined.
+00341    0341 5  0,0000 1                TS       SGNON          
+                          
+                          SGNCOM         EQU      *              
+*** ERROR: ZERO undefined.
+00342    0342 3  0,0000 1                CAF      ZERO           
+*** ERROR: CODE undefined.
+00343    0343 5  0,0000 1                TS       CODE           
+*** ERROR: SGNOFF undefined.
+00344    0344 3  0,0000 1                XCH      SGNOFF         
+*** ERROR: _11DSPIN undefined.
+00345    0345 0  0,0000 1                TC       _11DSPIN       
+                          
+*** ERROR: BIT11 undefined.
+00346    0346 3  0,0000 1                CAF      BIT11          
+*** ERROR: CODE undefined.
+00347    0347 5  0,0000 1                TS       CODE           
+*** ERROR: SGNON undefined.
+00350    0350 3  0,0000 1                XCH      SGNON          
+*** ERROR: _11DSPIN undefined.
+00351    0351 0  0,0000 1                TC       _11DSPIN       
+                          
+*** ERROR: LXCH_LPRET undefined.
+00352    0352 0  0,0000 1                TC       LXCH_LPRET     ; return
+                          
+                          M_ON           EQU      *              
+00353    0353 3  0,0001 0                XCH      Q              ; was LXCH Q in block II
+*** ERROR: LXCH_LPRET undefined.
+00354    0354 5  0,0000 1                TS       LXCH_LPRET     ; save return address in faux LP
+                          
+00355    0355 0  0,0241 0                TC       GETINREL       
+*** ERROR: INREL undefined.
+00356    0356 2  0,0000 0                INDEX    INREL          
+00357    0357 3  0,0362 0                CAF      SGNTAB-2       
+*** ERROR: SGNON undefined.
+00360    0360 5  0,0000 1                TS       SGNON          
+*** ERROR: ONE undefined.
+00361    0361 6  0,0000 1                AD       ONE            
+*** ERROR: SGNOFF undefined.
+00362    0362 5  0,0000 1                TS       SGNOFF         
+00363    0363 0  0,0342 1                TC       SGNCOM         
+                          
+                          SGNTAB         EQU      *              
+00364    0364     00005 1                DS       %5             ; -R1
+00365    0365     00003 1                DS       %3             ; -R2
+00366    0366     00000 1                DS       %0             ; -R3
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; SIGNTEST
+                          ; Test whether this is a valid point for entering a + or - sign character. 
+                          ; Returns if valid; calls ENDOFJOB if invalid.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.314.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          SIGNTEST       EQU      *              
+00367    0367 3  0,0001 0                XCH      Q              ; was LXCH Q in block II
+*** ERROR: LXCH_LPRET undefined.
+00370    0370 5  0,0000 1                TS       LXCH_LPRET     ; save return address in faux LP
+                          
+                          ; allows +,- only when DSPCOUNT=R1D1
+*** ERROR: THREE undefined.
+00371    0371 3  0,0000 1                CAF      THREE          ; R2D1, or D3D1. Allows only first of
+*** ERROR: DECBRNCH undefined.
+00372    0372 7  0,0000 0                MASK     DECBRNCH       ; consecutive +/- characters.
+00373    0373 1  0,0000 0                CCS      A              ; if low2 bits of DECBRNCH not=0, sign
+*** ERROR: ENDOFJOB undefined.
+00374    0374 0  0,0000 1                TC       ENDOFJOB       ; for this word already in, reject.
+                          
+*** ERROR: R1D1 undefined.
+00375    0375 4  0,0000 0                CS       R1D1           
+00376    0376 0  0,0404 1                TC       SGNTST1        ; DSPCOUNT is R1D1?
+*** ERROR: R2D1 undefined.
+00377    0377 4  0,0000 0                CS       R2D1           
+00400    0400 0  0,0404 1                TC       SGNTST1        
+*** ERROR: R3D1 undefined.
+00401    0401 4  0,0000 0                CS       R3D1           
+00402    0402 0  0,0404 1                TC       SGNTST1        
+*** ERROR: ENDOFJOB undefined.
+00403    0403 0  0,0000 1                TC       ENDOFJOB       ; no match found, sign illegal
+                          
+                          SGNTST1        EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00404    0404 6  0,0000 1                AD       DSPCOUNT       
+                          
+00405    0405 1  0,0000 0                CCS      A              ; was BZF *+2 in Block II
+00406    0406 0  0,0001 0                TC       Q              ; >0, no match, check next register
+*** ERROR: LXCH_LPRET undefined.
+00407    0407 0  0,0000 1                TC       LXCH_LPRET     ; +0, match found, sign is legal
+00410    0410 0  0,0001 0                TC       Q              ; <0, no match, check next register
+*** ERROR: LXCH_LPRET undefined.
+00411    0411 0  0,0000 1                TC       LXCH_LPRET     ; -0, match found, sign is legal
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; CLEAR -- PROCESS CLEAR KEY
+                          ; Clear blanks which R1, R2, R3 is current or last to be displayed (pertinent
+                          ; XREG, YREG, ZREG is cleared). Successive clears take care of each RX L/
+                          ; RC until R1 is done, then no further action.
+                          ; 
+                          ; The single component load verbs allow only the single RC that is appropriate
+                          ; to be cleared.
+                          ; 
+                          ; CLPASS = 0, PASSO, can be backed up
+                          ; CLPASS = +NZ, HIPASS, can be backed up
+                          ; CLPASS = -NZ, PASSO, cannot be backed up
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.316.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          CLEAR          EQU      *              
+*** ERROR: DSPCOUNT undefined.
+00412    0412 1  0,0000 0                CCS      DSPCOUNT       
+*** ERROR: ONE undefined.
+00413    0413 6  0,0000 1                AD       ONE            
+00414    0414 0  0,0416 1                TC       *+2            
+*** ERROR: ONE undefined.
+00415    0415 6  0,0000 1                AD       ONE            
+00416    0416 2  0,0000 0                INDEX    A              ; do not change DSPCOUNT because may later
+00417    0417 3  0,0245 1                CAF      INRELTAB       ; fail LEGALTST
+*** ERROR: INREL undefined.
+00420    0420 5  0,0000 1                TS       INREL          ; must set INREL, even for HIPASS
+*** ERROR: CLPASS undefined.
+00421    0421 1  0,0000 0                CCS      CLPASS         
+00422    0422 0  0,0431 1                TC       CLPASHI        ; +
+00423    0423 0  0,0425 1                TC       *+2            ; +0, if CCLPASS is +0 or -, it is PASS0
+00424    0424 0  0,0425 1                TC       *+1            ; -
+*** ERROR: ZERO undefined.
+00425    0425 3  0,0000 1                CAF      ZERO           ; was CA INREL in Block II
+*** ERROR: INREL undefined.
+00426    0426 6  0,0000 1                AD       INREL          
+00427    0427 0  0,0464 1                TC       LEGALTST       
+00430    0430 0  0,0454 1                TC       CLEAR1         
+                          
+                          CLPASHI        EQU      *              
+*** ERROR: INREL undefined.
+00431    0431 1  0,0000 0                CCS      INREL          
+*** ERROR: INREL undefined.
+00432    0432 5  0,0000 1                TS       INREL          
+00433    0433 0  0,0464 1                TC       LEGALTST       
+                          
+00434    0434 3  0,0536 1                CAF      DOUBLK+2       ; +3 to - number, backs data requests
+*** ERROR: REQRET undefined.
+00435    0435 6  0,0000 1                AD       REQRET         ; was ADS REQRET in Block II
+*** ERROR: REQRET undefined.
+00436    0436 5  0,0000 1                TS       REQRET         
+                          
+*** ERROR: ZERO undefined.
+00437    0437 3  0,0000 1                CAF      ZERO           ; was CA INREL in Block II
+*** ERROR: INREL undefined.
+00440    0440 6  0,0000 1                AD       INREL          
+*** ERROR: MIXTEMP undefined.
+00441    0441 5  0,0000 1                TS       MIXTEMP        ; temp storage for INREL
+                          
+*** ERROR: VERBREG undefined.
+00442    0442 1  0,0000 0                CCS      VERBREG        ; was DIM VERBREG in Block II
+00443    0443 0  0,0446 1                TC       *+3            
+00444    0444 0  0,0446 1                TC       *+2            
+00445    0445 0  0,0446 1                TC       *+1            
+*** ERROR: VERBREG undefined.
+00446    0446 5  0,0000 1                TS       VERBREG        ; decrement VERB and redisplay
+                          
+*** ERROR: BANKCALL undefined.
+00447    0447 0  0,0000 1                TC       BANKCALL       
+*** ERROR: UPDATVB undefined.
+00450    0450     00000 1                DS       UPDATVB        
+                          
+*** ERROR: ZERO undefined.
+00451    0451 3  0,0000 1                CAF      ZERO           ; was CA MIXTEMP in Block II
+*** ERROR: MIXTEMP undefined.
+00452    0452 6  0,0000 1                AD       MIXTEMP        
+*** ERROR: INREL undefined.
+00453    0453 5  0,0000 1                TS       INREL          ; restore INREL
+                          
+                          CLEAR1         EQU      *              
+00454    0454 0  0,0461 1                TC       CLR5           
+                          
+*** ERROR: CLPASS undefined.
+00455    0455 3  0,0000 1                XCH      CLPASS         ; was INCR CLPASS in Block II
+*** ERROR: ONE undefined.
+00456    0456 6  0,0000 1                AD       ONE            
+*** ERROR: CLPASS undefined.
+00457    0457 5  0,0000 1                TS       CLPASS         ; only if CLPASS is + or +0
+                          
+*** ERROR: ENDOFJOB undefined.
+00460    0460 0  0,0000 1                TC       ENDOFJOB       ; set for higher pass
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; CLR5
+                          ; blanks 5 char display word by calling _5BLANK, but avoids TC GETINREL.
+                          ; Returns when done.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.316.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          CLR5           EQU      *              
+00461    0461 3  0,0001 0                XCH      Q              ; was LXCH Q in block II
+*** ERROR: LXCH_LPRET undefined.
+00462    0462 5  0,0000 1                TS       LXCH_LPRET     ; save return address in faux LP
+00463    0463 0  0,0476 1                TC       _5BLANK+3      ; uses _5BLANK, but avoids its TC GETINREL
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; LEGALTST
+                          ; Returns if LEGAL, calls ENDOFJOB if illegal.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.316.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          LEGALTST       EQU      *              
+*** ERROR: NEG2 undefined.
+00464    0464 6  0,0000 1                AD       NEG2           
+00465    0465 1  0,0000 0                CCS      A              
+00466    0466 0  0,0001 0                TC       Q              ; LEGAL, INREL G/ 2
+00467    0467 0  0,0271 0                TC       CCSHOLE        
+*** ERROR: ENDOFJOB undefined.
+00470    0470 0  0,0000 1                TC       ENDOFJOB       ; ILLEGAL, INREL = 0, 1
+00471    0471 0  0,0001 0                TC       Q              ; LEGAL, INREL = 2
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; _5BLANK
+                          ; blanks 5 char display word in R1,R2,or R3. It also zeroes XREG, YREG or 
+                          ; ZREG. Place any + DSPCOUNT number for pertinent RC into DSPCOUNT.
+                          ; DSPCOUNT is left set to left most DSP numb for RC just blanked.
+                          ; Returns when done.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.316.
+                          ;-------------------------------------------------------------------------- 
+                          
+*** ERROR: DSPCOUNT undefined.
+00472    0472 5  0,0000 1                TS       DSPCOUNT       ; needed for BLANKSUB
+                          
+                          _5BLANK        EQU      *              
+00473    0473 3  0,0001 0                XCH      Q              ; was LXCH Q in block II
+*** ERROR: LXCH_LPRET undefined.
+00474    0474 5  0,0000 1                TS       LXCH_LPRET     ; save return address in faux LP
+                          
+00475    0475 0  0,0241 0                TC       GETINREL       
+*** ERROR: ZERO undefined.
+00476    0476 3  0,0000 1                CAF      ZERO           
+*** ERROR: INREL undefined.
+00477    0477 2  0,0000 0                INDEX    INREL          
+*** ERROR: VERBREG undefined.
+00500    0500 5  0,0000 1                TS       VERBREG        ; zero X, Y, Z reg
+*** ERROR: INREL undefined.
+00501    0501 2  0,0000 0                INDEX    INREL          
+*** ERROR: XREGLP undefined.
+00502    0502 5 17,7775 0                TS       XREGLP-2       
+*** ERROR: CODE undefined.
+00503    0503 5  0,0000 1                TS       CODE           
+*** ERROR: INREL undefined.
+00504    0504 2  0,0000 0                INDEX    INREL          ; zero pertinent DEC comp bit
+*** ERROR: BIT7 undefined.
+00505    0505 4  0,0000 0                CS       BIT7           
+*** ERROR: DECBRNCH undefined.
+00506    0506 7  0,0000 0                MASK     DECBRNCH       
+00507    0507 7  0,0537 1                MASK     BRNCHCON       ; zero low 3 bits
+*** ERROR: DECBRNCH undefined.
+00510    0510 5  0,0000 1                TS       DECBRNCH       
+*** ERROR: INREL undefined.
+00511    0511 2  0,0000 0                INDEX    INREL          
+00512    0512 3  0,0527 1                CAF      SINBLANK-2     ; blank isolated char separately
+*** ERROR: COUNT undefined.
+00513    0513 5  0,0000 1                TS       COUNT          
+*** ERROR: DSPIN undefined.
+00514    0514 0  0,0000 1                TC       DSPIN          
+                          
+                          _5BLANK1       EQU      *              
+*** ERROR: INREL undefined.
+00515    0515 2  0,0000 0                INDEX    INREL          
+00516    0516 3  0,0532 0                CAF      DOUBLK-2       
+*** ERROR: DSPCOUNT undefined.
+00517    0517 5  0,0000 1                TS       DSPCOUNT       
+00520    0520 0  0,0540 0                TC       _2BLANK        
+                          
+*** ERROR: TWO undefined.
+00521    0521 4  0,0000 0                CS       TWO            
+*** ERROR: DSPCOUNT undefined.
+00522    0522 6  0,0000 1                AD       DSPCOUNT       ; was ADS DSPCOUNT in Block II
+*** ERROR: DSPCOUNT undefined.
+00523    0523 5  0,0000 1                TS       DSPCOUNT       
+                          
+00524    0524 0  0,0540 0                TC       _2BLANK        
+*** ERROR: INREL undefined.
+00525    0525 2  0,0000 0                INDEX    INREL          
+*** ERROR: R1D1 undefined.
+00526    0526 3 17,7775 0                CAF      R1D1-2         
+*** ERROR: DSPCOUNT undefined.
+00527    0527 5  0,0000 1                TS       DSPCOUNT       ; set DSPCOUNT to leftmost DSP number
+*** ERROR: LXCH_LPRET undefined.
+00530    0530 0  0,0000 1                TC       LXCH_LPRET     ; of REG, just blanked
+                          
+                          
+                          SINBLANK       EQU      *              
+00531    0531     00016 0                DS       %16            ; DEC 14
+00532    0532     00005 1                DS       %5             
+00533    0533     00004 0                DS       %4             
+                          
+                          DOUBLK         EQU      *              
+00534    0534     00015 0                DS       %15            ; DEC 13
+00535    0535     00011 1                DS       %11            ; DEC 9
+00536    0536     00003 1                DS       %3             
+                          
+00537    0537     77774 0 BRNCHCON       DS       %77774         
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; _2BLANK
+                          ; blanks 2 char, place DSP number of left char of the pair into DSPCOUNT. 
+                          ; This number is left in DSPCOUNT. Returns when done.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968, p.317.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          
+                          _2BLANK        EQU      *              
+00540    0540 3  0,0001 0                XCH      Q              
+*** ERROR: SAVEQ undefined.
+00541    0541 5  0,0000 1                TS       SAVEQ          
+                          
+*** ERROR: ZERO undefined.
+00542    0542 3  0,0000 1                CAF      ZERO           ; was CA DSPCOUNT in Block II
+*** ERROR: DSPCOUNT undefined.
+00543    0543 6  0,0000 1                AD       DSPCOUNT       
+00544    0544 5  0,0021 1                TS       SR             
+00545    0545 4  0,0563 0                CS       BLANKCON       
+                          
+00546    0546 2  0,0000 0                INHINT                  
+00547    0547 2  0,0021 0                INDEX    SR             
+*** ERROR: DSPTAB undefined.
+00550    0550 3  0,0000 1                XCH      DSPTAB         
+                          
+00551    0551 1  0,0000 0                CCS      A              ; was BZMF *+2 in Block II
+00552    0552 0  0,0556 1                TC       *+4            ; >0
+00553    0553 0  0,0555 1                TC       *+2            ; +0, if old contents -, NOUT OK
+00554    0554 0  0,0555 1                TC       *+1            ; <0, if old contents -, NOUT OK
+00555    0555 0  0,0557 0                TC       *+2            ; -0, if old contents -, NOUT OK
+                          
+*** ERROR: NOUT undefined.
+00556    0556 3  0,0000 1                XCH      NOUT           ; was INCR NOUT in Block II
+*** ERROR: ONE undefined.
+00557    0557 6  0,0000 1                AD       ONE            
+*** ERROR: NOUT undefined.
+00560    0560 5  0,0000 1                TS       NOUT           ; if old contents +, +1 to NOUT
+00561    0561 2  0,0000 1                RELINT                  
+                          
+*** ERROR: SAVEQ undefined.
+00562    0562 0  0,0000 1                TC       SAVEQ          
+                          
+00563    0563     04000 0 BLANKCON       DS       %4000          
+                          
+                          
+                          
+
+Assembly complete. Errors = 206
+
+Symbol table:
+CHARIN         000000   CHARIN2        000016   ELRCODE1       000062   
+ENTERJMP       000063   _89TEST        000065   NUM            000101   
+DECTOBIN       000137   ENDNMTST       000155   ENDNUM         000170   
+ENDALL         000174   DECEND         000176   PDECSGN        000220   
+MORNUM         000227   CRITCON        000232   DECON          000237   
+GETINREL       000241   INRELTAB       000245   CCSHOLE        000271   
+VERB           000272   NVCOM          000275   NOUN           000306   
+NEGSGN         000312   BOTHSGN        000315   PIXCLPAS       000321   
+POSGN          000326   P_ON           000332   SGNCOM         000342   
+M_ON           000353   SGNTAB         000364   SIGNTEST       000367   
+SGNTST1        000404   CLEAR          000412   CLPASHI        000431   
+CLEAR1         000454   CLR5           000461   LEGALTST       000464   
+_5BLANK        000473   _5BLANK1       000515   SINBLANK       000531   
+DOUBLK         000534   BRNCHCON       000537   _2BLANK        000540   
+BLANKCON       000563   A              000000   CYL            000022   
+Q              000001   SR             000021   

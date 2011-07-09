@@ -1,0 +1,253 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO1_AD (file:teco1_AD.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		9/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests basic instructions: AD.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          START          EQU      %00            
+                          
+                          ADtst          EQU      %07            ; AD check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          ; AD test
+00102    0102     77777 0 ADk            DS       -0             
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2001 1                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02001    2001 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02002    2002 0  1,2011 0                TCR      begin          
+                          
+                          ; Test basic instructions.
+02003    2003 0  1,2030 0                TCR      chkAD          
+                          
+                          ; Passed all tests.
+02004    2004 0  1,2126 0                TCR      finish         
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02007    2007 0  1,2007 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02010    2010     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST AD INSTRUCTION SUBROUTINE
+                          ; L:	AD	K
+                          ; Verifies the following:
+                          ; - Set C(A) = b(A) + C(K)
+                          ; - Take next instruction from L+1
+                          ; - if C(A) has positive overflow,
+                          ; -- increment overflow counter by 1
+                          ; - if C(A) has negative overflow,
+                          ; -- decrement overflow counter by 1
+                          
+02014    2014     00007 0 ADcode         DS       ADtst          ; code for this test
+02015    2015     00000 1 ADplus0        DS       +0             
+02016    2016     00001 0 ADplus1        DS       1              
+02017    2017     77776 1 ADmin1         DS       -1             
+                          
+02020    2020     25252 0 AD25252        DS       %25252         ; +10922 decimal
+02021    2021     12525 0 AD12525        DS       %12525         ; +5461 decimal
+02022    2022     37777 1 AD37777        DS       %37777         ; largest positive number
+02023    2023     12524 1 AD12524        DS       %12524         ; positive overflow of %25252+%25252
+                          
+02024    2024     52525 1 AD52525        DS       %52525         ; -10922 decimal
+02025    2025     65252 1 AD65252        DS       %65252         ; -5461 decimal
+02026    2026     40000 0 AD40000        DS       %40000         ; largest negative number
+02027    2027     65253 0 AD65253        DS       %65253         ; negative overflow of %52525+65252
+                          
+                          chkAD          EQU      *              
+02030    2030 3  0,0001 0                XCH      Q              
+02031    2031 5  0,0101 1                TS       savQ           ; save return address
+                          
+02032    2032 3  1,2014 0                CAF      ADcode         
+02033    2033 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; TEST1: sum positive, no overflow
+                          ; add: %25252 + %12525 = %37777 (sign + 14 magnitude)
+02034    2034 3  1,2020 1                CAF      AD25252        
+02035    2035 6  1,2021 0                AD       AD12525        
+                          ; verify C(A) = %37777
+02036    2036 4  0,0000 0                COM                     ; get -A
+02037    2037 6  1,2022 0                AD       AD37777        ; put (-A) + expected value in A
+02040    2040 1  0,0000 0                CCS      A              ; compare
+02041    2041 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02042    2042 0  1,2005 0                TC       fail           ; +0
+02043    2043 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST2: sum negative, no overflow (sign + 14 magnitude)
+                          ; add: %52525 + %65252 = %40000
+02044    2044 3  1,2024 0                CAF      AD52525        
+02045    2045 6  1,2025 1                AD       AD65252        
+                          ; verify C(A) = %40000
+02046    2046 4  0,0000 0                COM                     ; get -A
+02047    2047 6  1,2026 1                AD       AD40000        ; put (-A) + expected value in A
+02050    2050 1  0,0000 0                CCS      A              ; compare
+02051    2051 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02052    2052 0  1,2005 0                TC       fail           ; +0
+02053    2053 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST3: sum positive, overflow
+                          ; initialize overflow counter and positive overflow storage
+02054    2054 3  1,2015 1                CAF      ADplus0        
+02055    2055 5  0,0034 0                TS       OVFCNTR        
+02056    2056 5  0,0102 1                TS       ADk            
+                          ; add: %25252 + %25252 = %52524 (sign + 14 magnitude)
+02057    2057 3  1,2020 1                CAF      AD25252        
+02060    2060 6  1,2020 1                AD       AD25252        
+02061    2061 5  0,0102 1                TS       ADk            ; store positive overflow
+02062    2062 0  1,2005 0                TC       fail           
+                          ; verify ADk = %12524
+02063    2063 4  0,0102 0                CS       ADk            ; get -A
+02064    2064 6  1,2023 1                AD       AD12524        ; put (-A) + expected value in A
+02065    2065 1  0,0000 0                CCS      A              ; compare
+02066    2066 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02067    2067 0  1,2005 0                TC       fail           ; +0
+02070    2070 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          ; verify overflow counter =%00001
+02071    2071 4  0,0034 1                CS       OVFCNTR        ; get -A
+02072    2072 6  1,2016 1                AD       ADplus1        ; put (-A) + expected value in A
+02073    2073 1  0,0000 0                CCS      A              ; compare
+02074    2074 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02075    2075 0  1,2005 0                TC       fail           ; +0
+02076    2076 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST4: sum negative, overflow
+02077    2077 3  1,2015 1                CAF      ADplus0        
+02100    2100 5  0,0034 0                TS       OVFCNTR        
+02101    2101 5  0,0102 1                TS       ADk            
+                          ; add: %52525 + %52525 = %25253 (sign + 14 magnitude)
+02102    2102 3  1,2024 0                CAF      AD52525        
+02103    2103 6  1,2024 0                AD       AD52525        
+02104    2104 5  0,0102 1                TS       ADk            ; store negative overflow
+02105    2105 0  1,2005 0                TC       fail           
+                          ; verify ADk = %65253
+02106    2106 4  0,0102 0                CS       ADk            ; get -A
+02107    2107 6  1,2027 0                AD       AD65253        ; put (-A) + expected value in A
+02110    2110 1  0,0000 0                CCS      A              ; compare
+02111    2111 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02112    2112 0  1,2005 0                TC       fail           ; +0
+02113    2113 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          ; verify overflow counter =%77776
+02114    2114 4  0,0034 1                CS       OVFCNTR        ; get -A
+02115    2115 6  1,2017 0                AD       ADmin1         ; put (-A) + expected value in A
+02116    2116 1  0,0000 0                CCS      A              ; compare
+02117    2117 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02120    2120 0  1,2005 0                TC       fail           ; +0
+02121    2121 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+02122    2122 3  0,0101 1                XCH      savQ           
+02123    2123 5  0,0001 0                TS       Q              ; restore return address
+02124    2124 0  0,0000 0                RETURN                  
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02125    2125     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02126    2126 3  1,2125 0                CAF      PASScode       
+02127    2127 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02130    2130 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   ADtst          000007   PASS           012345   
+OVFCNTR        000034   curtest        000100   savQ           000101   
+ADk            000102   GOPROG         002000   goMAIN         002001   
+fail           002005   end            002007   STRTcode       002010   
+begin          002011   ADcode         002014   ADplus0        002015   
+ADplus1        002016   ADmin1         002017   AD25252        002020   
+AD12525        002021   AD37777        002022   AD12524        002023   
+AD52525        002024   AD65252        002025   AD40000        002026   
+AD65253        002027   chkAD          002030   PASScode       002125   
+finish         002126   Q              000001   A              000000   

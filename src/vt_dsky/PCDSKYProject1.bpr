@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.06.00"/>
+    <PROJECT value="PCDSKYProject1.exe"/>
+    <OBJFILES value="PCDSKYProject1.obj PCDSKYUnit1.obj RunProg.obj Watch.obj"/>
+    <RESFILES value="PCDSKYProject1.res"/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) PCDSKYUnit1.dfm Watch.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value="Package1.lib vclx.lib rtl.lib vcl.lib"/>
+    <SPARELIBS value="vcl.lib rtl.lib vclx.lib Package1.lib"/>
+    <PACKAGES value="vcl.bpi rtl.bpi vclx.bpi bcbsmp.bpi dbrtl.bpi adortl.bpi vcldb.bpi 
+      qrpt.bpi bdertl.bpi dsnap.bpi cds.bpi bdecds.bpi ibxpress.bpi visualclx.bpi 
+      visualdbclx.bpi vclie.bpi xmlrtl.bpi inet.bpi inetdbbde.bpi 
+      inetdbxpress.bpi nmfast.bpi bcbie.bpi soaprtl.bpi dclocx.bpi dbexpress.bpi 
+      dbxcds.bpi indy.bpi bcb2kaxserver.bpi Package1.bpi vcldbx.bpi teeqr.bpi 
+      teeui.bpi teedb.bpi tee.bpi inetdb.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="ilink32"/>
+    <USERDEFINES value="_DEBUG"/>
+    <SYSDEFINES value="NO_STRICT"/>
+    <MAINSOURCE value="PCDSKYProject1.cpp"/>
+    <INCLUDEPATH value="..\Console1;..\PC_DSKY;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="..\Console1;$(BCB)\Projects\Lib;..\PC_DSKY;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <WARNINGS value="-w-par"/>
+    <OTHERFILES value=""/>
+  </MACROS>
+  <OPTIONS>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -c 
+      -tW -tWM"/>
+    <PFLAGS value="-$YD -$W -$O- -$A8 -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zd"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn -v"/>
+    <OTHERFILES value=""/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0w32.obj sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mt.lib"/>
+    <OTHERFILES value=""/>
+  </LINKER>
+  <FILELIST>
+      <FILE FILENAME="PCDSKYProject1.res" FORMNAME="" UNITNAME="PCDSKYProject1.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PCDSKYProject1.cpp" FORMNAME="" UNITNAME="PCDSKYProject1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PCDSKYUnit1.cpp" FORMNAME="Form1" UNITNAME="PCDSKYUnit1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="RunProg.cpp" FORMNAME="" UNITNAME="RunProg.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Watch.cpp" FORMNAME="WatchWin" UNITNAME="Watch" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+  </FILELIST>
+  <BUILDTOOLS>
+  </BUILDTOOLS>
+
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=0
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1033
+CodePage=1252
+
+[Version Info Keys]
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+
+[Excluded Packages]
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\tmsc6.bpl=TMS Component Pack
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\tmsdec6.bpl=TMS Component Pack design time support
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\tmsxlsc6.bpl=TAdvStringGrid Excel support
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\vcwb6.bpl=TMS Instrumentation Workshop
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\YMP3Comp.bpl=Yittle Mp3 Player
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\ClockComp.bpl=Analog Clock
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\vacommb6.bpl=TMS Async32
+C:\Program Files (x86)\Borland\CBuilder6\Bin\dclbde60.bpl=Borland BDE DB Components
+C:\Program Files (x86)\Borland\CBuilder6\Bin\dcltee60.bpl=TeeChart Components
+c:\program files (x86)\borland\cbuilder6\Bin\DBWEBXPRT.BPL=Borland Web Wizard Package
+c:\program files (x86)\borland\cbuilder6\Bin\dcltqr60.bpl=TeeChart for QuickReport Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclite60.bpl=Borland Integrated Translation Environment
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\vsfb6.bpl=TMS Skin Factory
+
+[HistoryLists\hlIncludePath]
+Count=2
+Item0=$(BCB)\include;$(BCB)\include\vcl
+Item1=..\PC_DSKY;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=2
+Item0=$(BCB)\lib\obj;$(BCB)\lib
+Item1=..\PC_DSKY;$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=1
+Item0=_DEBUG
+
+[Debugging]
+DebugSourceDirs=$(BCB)\source\vcl
+
+[Parameters]
+RunParams=
+Launcher=
+UseLauncher=0
+DebugCWD=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteLauncher=
+RemoteCWD=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=0
+LinkCGLIB=0
+  </IDEOPTIONS>
+</PROJECT>

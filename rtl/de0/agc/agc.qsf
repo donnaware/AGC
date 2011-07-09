@@ -1,0 +1,182 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2010 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II
+# Version 10.0 Build 262 08/18/2010 Service Pack 1 SJ Web Edition
+# Date created = 15:20:18  April 15, 2011
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		agc_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone III"
+set_global_assignment -name DEVICE EP3C16F484C6
+set_global_assignment -name TOP_LEVEL_ENTITY AGC
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "10.0 SP1"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "15:20:18  APRIL 15, 2011"
+set_global_assignment -name LAST_QUARTUS_VERSION "10.1 SP1"
+set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 484
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
+set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 6
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim (Verilog)"
+set_global_assignment -name EDA_USER_COMPILED_SIMULATION_LIBRARY_DIRECTORY "C:/Dev1/Apollo/bsf/testb/work" -section_id eda_simulation
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
+set_location_assignment PIN_G21 -to Main_clk
+set_global_assignment -name MISC_FILE "C:/altera/AGC/bsf/CIII/agc.dpf"
+set_global_assignment -name MISC_FILE "C:/Dev1/Apollo/bsf/CIII/agc.dpf"
+set_location_assignment PIN_D2 -to CLR_PAR_ALM
+set_location_assignment PIN_AA20 -to MISO
+set_location_assignment PIN_AB20 -to MOSI
+set_location_assignment PIN_AB19 -to SCLK
+set_location_assignment PIN_AA18 -to SSEL
+set_location_assignment PIN_C2 -to TESTLED
+set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_location_assignment PIN_B1 -to CLK1
+set_location_assignment PIN_B2 -to CLK2
+set_location_assignment PIN_E1 -to FX13
+set_location_assignment PIN_C1 -to FX17
+set_location_assignment PIN_F2 -to FX10
+set_location_assignment PIN_H1 -to TPG[3]
+set_location_assignment PIN_J1 -to TPG[0]
+set_location_assignment PIN_J2 -to TPG[1]
+set_location_assignment PIN_J3 -to TPG[2]
+set_location_assignment PIN_F12 -to Dig0[5]
+set_location_assignment PIN_F13 -to Dig0[6]
+set_location_assignment PIN_E11 -to Dig0[0]
+set_location_assignment PIN_F11 -to Dig0[1]
+set_location_assignment PIN_H12 -to Dig0[2]
+set_location_assignment PIN_H13 -to Dig0[3]
+set_location_assignment PIN_G12 -to Dig0[4]
+set_location_assignment PIN_A13 -to Dig1[0]
+set_location_assignment PIN_B13 -to Dig1[1]
+set_location_assignment PIN_C13 -to Dig1[2]
+set_location_assignment PIN_A14 -to Dig1[3]
+set_location_assignment PIN_B14 -to Dig1[4]
+set_location_assignment PIN_E14 -to Dig1[5]
+set_location_assignment PIN_A15 -to Dig1[6]
+set_location_assignment PIN_D15 -to Dig2[0]
+set_location_assignment PIN_A16 -to Dig2[1]
+set_location_assignment PIN_B16 -to Dig2[2]
+set_location_assignment PIN_E15 -to Dig2[3]
+set_location_assignment PIN_A17 -to Dig2[4]
+set_location_assignment PIN_B17 -to Dig2[5]
+set_location_assignment PIN_F14 -to Dig2[6]
+set_location_assignment PIN_B18 -to Dig3[0]
+set_location_assignment PIN_F15 -to Dig3[1]
+set_location_assignment PIN_A19 -to Dig3[2]
+set_location_assignment PIN_B19 -to Dig3[3]
+set_location_assignment PIN_C19 -to Dig3[4]
+set_location_assignment PIN_D19 -to Dig3[5]
+set_location_assignment PIN_G15 -to Dig3[6]
+set_location_assignment PIN_H2 -to M_RESET
+set_location_assignment PIN_G3 -to CLK_STEP
+set_location_assignment PIN_F1 -to INST_STEP
+set_location_assignment PIN_H5 -to RUN_STEP
+set_location_assignment PIN_E4 -to SCALER_ENABLE
+set_location_assignment PIN_G4 -to CLK_MODE
+set_location_assignment PIN_E3 -to CLK_SEL
+set_location_assignment PIN_G5 -to STANDBY_ALLOW
+set_location_assignment PIN_H6 -to STEP_MODE
+set_location_assignment PIN_V7 -to WA10_LED
+set_location_assignment PIN_U8 -to GENRST_LED
+set_location_assignment PIN_AB16 -to SEQ[0]
+set_location_assignment PIN_AA16 -to SEQ[1]
+set_location_assignment PIN_AB15 -to SEQ[2]
+set_location_assignment PIN_AB14 -to SEQ[3]
+set_location_assignment PIN_AA13 -to SEQ[4]
+set_location_assignment PIN_AA8 -to SEQ[6]
+set_location_assignment PIN_AB4 -to SEQ[8]
+set_location_assignment PIN_U14 -to SEQ[10]
+set_location_assignment PIN_W13 -to SEQ[11]
+set_location_assignment PIN_V12 -to SEQ[12]
+set_location_assignment PIN_V11 -to SEQ[13]
+set_location_assignment PIN_W10 -to SEQ[14]
+set_location_assignment PIN_V8 -to SEQ[15]
+set_location_assignment PIN_W6 -to SEQ[16]
+set_location_assignment PIN_U7 -to SEQ[17]
+set_location_assignment PIN_AA5 -to SEQ[7]
+set_location_assignment PIN_V5 -to SEQ[18]
+set_location_assignment PIN_W7 -to SEQ[19]
+set_location_assignment PIN_T8 -to SEQ[20]
+set_location_assignment PIN_Y10 -to SEQ[21]
+set_location_assignment PIN_AA10 -to SEQ[5]
+set_location_assignment PIN_AA4 -to SEQ[9]
+set_location_assignment PIN_G16 -to Parity_Alarm
+set_global_assignment -name MISC_FILE "C:/Dev1/Apollo/BSF AGC/bsf_Test2/CIII/agc.dpf"
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name FITTER_EFFORT "AUTO FIT"
+set_location_assignment PIN_AB11 -to Slow_Clock
+set_global_assignment -name MISC_FILE "C:/Dev1/Apollo/BSF AGC/bsf_Test4/CIII/agc.dpf"
+set_location_assignment PIN_W17 -to FX10X_OUT
+set_global_assignment -name SEARCH_PATH "c:/dev1/apollo/de0/hw6/modules"
+set_global_assignment -name BDF_FILE AGC.bdf
+set_global_assignment -name VERILOG_FILE altpll0.v
+set_global_assignment -name LICENSE_FILE CPM_binary.dat
+set_global_assignment -name MIF_FILE agc.mif
+set_global_assignment -name MIF_FILE RAM_Init.mif
+set_global_assignment -name VERILOG_FILE JTAG_Probe.v
+set_global_assignment -name VERILOG_FILE JTAG_Probe1.v
+set_global_assignment -name VERILOG_FILE JTAG_Source1.v
+set_global_assignment -name VERILOG_FILE ../Modules/vji_dsky.v
+set_global_assignment -name VERILOG_FILE ../Modules/virt_jtag.v
+set_global_assignment -name SOURCE_FILE ../Modules/ControlPulses.h
+set_global_assignment -name VERILOG_FILE ../Modules/SPICmd1.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_MON.v
+set_global_assignment -name VERILOG_FILE ../Modules/debouncer.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_CLG.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_INP.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_OUT.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_SEQ.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_SUB.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_CMP.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_ADR.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_MEB.v
+set_global_assignment -name VERILOG_FILE ../Modules/ROM.v
+set_global_assignment -name VERILOG_FILE ../Modules/RAM.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_INT.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_CTR.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_CRG.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_ALU.v
+set_global_assignment -name VERILOG_FILE ../Modules/ng_PRM.v
+set_global_assignment -name VERILOG_FILE ../Modules/SEG7_OUT4.v
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

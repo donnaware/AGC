@@ -1,0 +1,274 @@
+;
+; AGC Block 1 Programming Examples
+; -------------------------------------------------------
+: Load A from fixed memory
+	CAF	M	; where M is in fixed memory
+
+; -------------------------------------------------------
+; Load A from eraseable memory
+	XCH	M	; where M is in eraseable memory
+	TS	M	; restore the value
+
+; alternate form:
+	CAF	zero	; zero constant in fixed memory
+	AD	M
+
+; -------------------------------------------------------
+; Indexed load A from eraseable memory
+	INDEX	index
+	XCH	M	; where M is in eraseable memory
+	INDEX	index
+	TS	M	; restore the value
+
+; -------------------------------------------------------
+; Access elements in structure
+
+	; structure
+baseadr	EQU	*
+	DS	0	; value A
+	DS	0	; value B
+
+	; access A
+	INDEX	baseadr
+	TS	0	; stores in value A
+
+	; access B
+	INDEX	baseadr
+	TS	1	; stores in value B
+; -------------------------------------------------------
+; Perform inclusive OR
+; 	- 'OR' contents of A with contents of memory at 'val'
+; 	- result is in 'A'
+; 	- changes contents of Q
+
+	COM
+	TS	Q;
+	CS	val;
+	MASK	Q;
+	COM
+; -------------------------------------------------------
+; Computed (indexed) GOTO
+
+	INDEX	index	; index = 0..n
+	TC	iGOTO
+iGOTO	EQU	*
+	TC	ADDR0	; index = 0
+	TC	ADDR1	; index = 1
+	TC	ADDR2	; index = 2 ...
+
+RET	EQU	*	; TC RET to return
+; -------------------------------------------------------
+; Call subroutine
+	TCR	subaddr	; stores return address in Q
+
+; Subroutine body
+subaddr	EQU	*
+	; do something useful
+	RETURN
+
+; -------------------------------------------------------
+; 'if' statement
+; if(val)
+; {
+;    do this
+; }
+
+
+FALSE	EQU	1	; 1 or greater
+TRUE	EQU	0
+
+val	DS	FALSE
+
+	CCS	val	; if(val == TRUE)
+	TC	notTrue	;
+
+	NOOP		; then do this
+
+notTrue	EQU	*
+
+; -------------------------------------------------------
+; 'if, then, else' statement
+; if(val)
+; {
+;    dothis1
+; }
+; else
+; {
+;    dothis2
+; }
+
+
+FALSE	EQU	1	; 1 or greater
+TRUE	EQU	0
+
+val	DS	FALSE
+
+	CCS	val	; if(val == TRUE)
+	TC	else	;
+
+	NOOP		; dothis1
+	TC	done
+	
+else	EQU	*
+	NOOP		; dothis2
+
+done	EQU	*
+
+; -------------------------------------------------------
+; Peform indexed EXTEND
+
+	; in eraseable memory
+index	DS	%0	; contains desired index
+iXTND	DS	%0	; indexed extend
+
+	; in fixed memory
+	CAF	EXTENDER
+	AD	index
+	TS	iXTND
+
+	; example: dividend and divisor are both indexed.
+	INDEX	index
+	CAF	baseAdd1
+	INDEX	iXTND	; EXTEND using index
+	DV	baseAdd2
+
+; -------------------------------------------------------
+; Peform indexed extend in structure
+
+	; structure
+baseadr	EQU	*
+	DS	0	; value A
+	DS	0	; value B
+
+iXTND	DS	0	; indexed extend
+
+	; set up indexed extend
+	CAF	EXTENDER
+	AD	baseadr	; EXTENDER + base address of struct
+	TS	iXTND
+
+	INDEX	iXTND
+	DV	0	; divisor is value A
+
+	INDEX	iXTND
+	DV	1	; divisor is value B
+; -------------------------------------------------------
+; Perform single precision integer division.
+;	- does not change the contents of memory
+;	- modifies contents of A, Q, LP
+;	- afterwards: integer quotient is in A
+;	- example in file: intdiv.asm
+
+	; in eraseable memory
+dividnd	DS	+100	; example: 100/30 = 3
+divisor	DS	+30
+
+	; in fixed memory
+one	DS	+1
+
+chkDV	EQU	*
+
+	CAF	one
+	EXTEND
+	DV	divisor	; A = 1/divisor
+	EXTEND
+	MP	dividnd	; A = A * dividend
+
+; -------------------------------------------------------
+; Compare val1 and val2; values may be in fixed or eraseable memory;
+;	- does not change contents of memory;
+;	- modifies contents of A
+;	- the +0 outcome never happens because of the addition
+;	of the negative number.
+;	- example in file: cmp1.asm
+	CS	val1
+	AD	val2	; put (-val1) + val2 in A
+	CCS	A	; A = DABS
+	TC	diff	; >0 (val1 < val2)
+	TC	same	; +0 (never happens)
+	TC	diff	; <0 (val1 > val2)
+	TC	same	; -0 (val1 == val2)
+
+; -------------------------------------------------------
+; Compare val1 and A; val1 may be in fixed or erasable memory;
+;	- does not change the contents of val1
+;	- modifies contents of A
+;	- the +0 outcome never happens because of the addition
+;	of the negative number
+	COM		; 1's compliment of A
+	AD	val1	; put (-A) + val1 in A
+	CCS	A	; A = DABS
+	TC	diff	; >0 (A < val1)
+	TC	same	; +0 (never happens)
+	TC	diff	; <0 (A > val1)
+	TC	same	; -0 (A == val1)
+
+; -------------------------------------------------------
+; Increment va1 by 1
+one	DS	%1	; somewhere in fixed memory
+
+	XCH	val1
+	AD	one
+	TS	val1
+
+; -------------------------------------------------------
+; Decrementing loop (loop xstart+1 times):
+;	- always executes at least once (tests at end of loop)
+;	- loops 'xstart+1' times; decrements xval
+;	- example in file: loop1.asm
+xval	DS	0	; somewhere in eraseable memory
+xstart	DS	5	; somewhere in fixed memory
+
+	XCH	xstart
+loop1	EQU	*
+	TS	xval
+	; do something useful (OK to change register A)
+	CCS	xval	; done?
+	TC	loop1	; not yet
+
+; -------------------------------------------------------
+; Decrementing loop (loop xstart times):
+;	- always executes at least once (tests at top of loop)
+;	- loops 'xstart' times; decrements xval
+;	- example in file: loop2.asm
+
+	XCH	xstart
+	TS	xval
+
+goback	EQU	*
+	CCS	xval	; done?
+	TC	inloop	; not yet
+	TC	done	; yes
+inloop	EQU	*
+	TS	xval
+	; do something useful (OK to change register A)
+	TC	goback
+
+done	EQU	*
+
+; -------------------------------------------------------
+; Incrementing loop:  for(xval=0; xval == 5; xval++)
+xval	DS	0	; somewhere in eraseable memory
+xinit	DS	%0	; somewhere in fixed memory
+xstop	DS	%5	; somewhere in fixed memory
+xincr	DS	%1	; somewhere in fixed memory
+
+	XCH	xstart	; set initial loop counter value
+	TS	xval
+
+test	EQU	*
+	COM		; test for end of loop
+	AD	val1	;
+	CCS	A	; done?
+	TC	work	; >0
+	TC	done	; +0
+	TC	work	; <0
+	TC	done	; -0
+work	EQU	*
+	; do something useful (OK to change register A)
+	XCH	xval	; increment loop counter
+	AD	xincr
+	TS	xval
+	TC	test
+
+done	EQU	*

@@ -1,0 +1,51 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;------------------------------------------------------------------------- 
+                          ; MP1 (file:MP1.asm)
+                          ; PURPOSE: Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests extracode instruction: MP
+                          ; 
+                          ; OPERATION: Enters an infinite loop at the end of the test. The A register contains 
+                          ; the Least significant word of the result of multiplying 2 numbers together.
+                          ; and the LP contains the MSW.
+                          ;------------------------------------------------------------------------- 
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM ENTRY POINT
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         
+                          goMAIN         EQU      *              
+02000    2000 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+                          ;------------------------------ 
+                          ; MP check starts here
+                          ; uses MPindex to access test values
+                          ;------------------------------ 
+02001    2001 3  1,2006 0                CAF      mp1            ; Get the first value
+02002    2002 2  0,0000 1                EXTEND                  ; this is an extended instruction
+02003    2003 4  1,2007 0                MP       mp2            ; multiply by the second value
+02004    2004 3  0,0003 1                XCH      LP             ; exchange so A has LSW and LP has MSW
+                          
+                          end            EQU      *              
+02005    2005 0  1,2005 0                TC       end            ; finished, TC trap
+                          
+02006    2006     00007 0 mp1            DS       %00007         ; check #08 (7 * 17) = 119 (o167, 0x77)
+02007    2007     00021 1 mp2            DS       %00021         ; check #08 (7 * 17)
+                          
+                          ; ----------------------------------------------
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          ;------------------------------------------------------------------------- 
+                          ; END OF PROGRAM
+                          ;------------------------------------------------------------------------- 
+
+Assembly complete. Errors = 0
+
+Symbol table:
+GOPROG         002000   goMAIN         002000   end            002005   
+mp1            002006   mp2            002007   EXTENDER       005777   
+LP             000003   

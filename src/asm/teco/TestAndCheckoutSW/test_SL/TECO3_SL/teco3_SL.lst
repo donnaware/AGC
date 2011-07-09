@@ -1,0 +1,260 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO3 (file:teco3_SL.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		9/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests editing registers: SL.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          START          EQU      %00            
+                          
+                          SLtst          EQU      %02            ; SL check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          
+                          ; SL test values
+00102    0102     00000 1 SLval          DS       %0             ; current test value
+00103    0103     00000 1 iSL            DS       %0             ; current index
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2001 1                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02001    2001 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02002    2002 0  1,2011 0                TCR      begin          
+                          
+                          ; Test extracode instructions.
+02003    2003 0  1,2056 0                TCR      chkSL          
+                          
+                          ; Passed all tests.
+02004    2004 0  1,2130 1                TCR      finish         
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02007    2007 0  1,2007 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02010    2010     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST SL EDITING FUNCTION SUBROUTINE
+                          ; Shift a test value left through SL 15 times.
+                          ; Test the value against an expected value for each time.
+                          ; After 15 shifts, the value should equal the sign (SG).
+                          
+02014    2014     00002 0 SLcode         DS       SLtst          ; code for this test
+                          
+                          ; SL test values
+02015    2015     03431 1 SLinitP        DS       %03431         ; positive init test value
+02016    2016     44346 0 SLinitN        DS       %44346         ; negative init test value
+02017    2017     00016 0 SLindx         DS       14             ; loop SLindx+1 times
+                          
+                          ; check SL against these values (positive)
+                          SLbaseP        EQU      *              
+02020    2020     00000 1                DS       %00000         ; check #0 (back to start)
+02021    2021     00000 1                DS       %00000         ; check #1
+02022    2022     20000 0                DS       %20000         ; check #2
+02023    2023     10000 0                DS       %10000         ; check #3
+02024    2024     04000 0                DS       %04000         ; check #4
+02025    2025     22000 1                DS       %22000         ; check #5
+02026    2026     31000 0                DS       %31000         ; check #6
+02027    2027     14400 0                DS       %14400         ; check #7
+02030    2030     06200 0                DS       %06200         ; check #8
+02031    2031     03100 0                DS       %03100         ; check #9
+02032    2032     21440 1                DS       %21440         ; check #10
+02033    2033     30620 0                DS       %30620         ; check #11
+02034    2034     34310 1                DS       %34310         ; check #12
+02035    2035     16144 1                DS       %16144         ; check #13
+02036    2036     07062 1                DS       %07062         ; check #14
+                          
+                          ; check SL against these values (negative)
+                          SLbaseN        EQU      *              
+02037    2037     77777 0                DS       %77777         ; check #0 (back to start)
+02040    2040     77777 0                DS       %77777         ; check #1
+02041    2041     57777 1                DS       %57777         ; check #2
+02042    2042     67777 1                DS       %67777         ; check #3
+02043    2043     73777 1                DS       %73777         ; check #4
+02044    2044     55777 0                DS       %55777         ; check #5
+02045    2045     46777 1                DS       %46777         ; check #6
+02046    2046     63377 1                DS       %63377         ; check #7
+02047    2047     71577 1                DS       %71577         ; check #8
+02050    2050     74677 1                DS       %74677         ; check #9
+02051    2051     56337 0                DS       %56337         ; check #10
+02052    2052     47157 1                DS       %47157         ; check #11
+02053    2053     43467 0                DS       %43467         ; check #12
+02054    2054     61633 0                DS       %61633         ; check #13
+02055    2055     50715 1                DS       %50715         ; check #14
+                          
+                          chkSL          EQU      *              
+02056    2056 3  0,0001 0                XCH      Q              
+02057    2057 5  0,0101 1                TS       savQ           ; save return address
+                          
+02060    2060 3  1,2014 0                CAF      SLcode         
+02061    2061 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; TEST 1: shift a postive value.
+02062    2062 3  1,2015 1                XCH      SLinitP        ; init value to shift
+02063    2063 5  0,0102 1                TS       SLval          
+                          
+02064    2064 3  1,2017 0                XCH      SLindx         ; load init index
+                          
+                          
+                          SLloopP        EQU      *              
+02065    2065 5  0,0103 0                TS       iSL            ; save index
+                          
+                          ; shift A left (SL)
+02066    2066 3  0,0102 1                XCH      SLval          
+02067    2067 5  0,0023 0                TS       SL             ; shift
+02070    2070 3  0,0023 0                XCH      SL             ; put result in A
+02071    2071 5  0,0102 1                TS       SLval          
+                          
+                          ; verify C(A)
+02072    2072 4  0,0000 0                COM                     ; get -A
+02073    2073 2  0,0103 1                INDEX    iSL            
+02074    2074 6  1,2020 1                AD       SLbaseP        ; put (-A) + expected value in A
+02075    2075 1  0,0000 0                CCS      A              ; compare
+02076    2076 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02077    2077 0  1,2005 0                TC       fail           ; +0
+02100    2100 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02101    2101 1  0,0103 1                CCS      iSL            ; done?
+02102    2102 0  1,2065 0                TC       SLloopP        ; not yet, do next check
+                          
+                          ; TEST 2: shift a negative value
+02103    2103 3  1,2016 1                XCH      SLinitN        ; init value to shift
+02104    2104 5  0,0102 1                TS       SLval          
+                          
+02105    2105 3  1,2017 0                XCH      SLindx         ; load init index
+                          
+                          SLloopN        EQU      *              
+02106    2106 5  0,0103 0                TS       iSL            ; save index
+                          
+                          ; shift A left (SL)
+02107    2107 3  0,0102 1                XCH      SLval          
+02110    2110 5  0,0023 0                TS       SL             ; shift
+02111    2111 3  0,0023 0                XCH      SL             ; put result in A
+02112    2112 5  0,0102 1                TS       SLval          
+                          
+                          ; verify C(A)
+02113    2113 4  0,0000 0                COM                     ; get -A
+02114    2114 2  0,0103 1                INDEX    iSL            
+02115    2115 6  1,2037 1                AD       SLbaseN        ; put (-A) + expected value in A
+02116    2116 1  0,0000 0                CCS      A              ; compare
+02117    2117 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02120    2120 0  1,2005 0                TC       fail           ; +0
+02121    2121 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02122    2122 1  0,0103 1                CCS      iSL            ; done?
+02123    2123 0  1,2106 1                TC       SLloopN        ; not yet, do next check
+                          
+02124    2124 3  0,0101 1                XCH      savQ           
+02125    2125 5  0,0001 0                TS       Q              ; restore return address
+02126    2126 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02127    2127     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02130    2130 3  1,2127 1                CAF      PASScode       
+02131    2131 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02132    2132 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   SLtst          000002   PASS           012345   
+curtest        000100   savQ           000101   SLval          000102   
+iSL            000103   GOPROG         002000   goMAIN         002001   
+fail           002005   end            002007   STRTcode       002010   
+begin          002011   SLcode         002014   SLinitP        002015   
+SLinitN        002016   SLindx         002017   SLbaseP        002020   
+SLbaseN        002037   chkSL          002056   SLloopP        002065   
+SLloopN        002106   PASScode       002127   finish         002130   
+Q              000001   SL             000023   A              000000   

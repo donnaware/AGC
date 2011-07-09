@@ -1,0 +1,31 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; CCS1 (file:ccs1.asm)
+                          ; test CCS instruction
+                                         ORG      100            ; start of data area
+00144    0144     00002 0 val2           DS       2              
+                                         ORG      GOPROG         
+02000    2000 3  1,2012 0                XCH      val1           ; put val1 in reg A
+02001    2001 1  0,0144 1                CCS      val2           ; put DABS of val2 in A
+02002    2002 0  1,2006 0                TC       loc1           ; >0
+02003    2003 0  1,2007 1                TC       loc2           ; +0
+02004    2004 0  1,2010 1                TC       loc3           ; <0
+02005    2005 0  1,2011 0                TC       loc4           ; -0
+02006    2006 0  1,2006 0 loc1           TC       loc1           
+02007    2007 0  1,2007 1 loc2           TC       loc2           
+02010    2010 0  1,2010 1 loc3           TC       loc3           
+02011    2011 0  1,2011 0 loc4           TC       loc4           
+                          ;val1		DS	%12345 
+02012    2012     00005 1 val1           DS       %00005         
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+val2           000144   GOPROG         002000   loc1           002006   
+loc2           002007   loc3           002010   loc4           002011   
+val1           002012   

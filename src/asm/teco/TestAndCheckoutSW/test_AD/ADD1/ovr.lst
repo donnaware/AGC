@@ -1,0 +1,96 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; -------------------------------------------------------
+                          ; ovrfl (file:ovrfl.asm)
+                          ; -------------------------------------------------------
+                          START          EQU      %12345         ; Initial value
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          ; ----------------------------------------------
+                                         ORG      %100           ; start of data area
+00100    0100     12345 0 curtest        DS       START          ; current test
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM ENTRY POINT:
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         ; Octal 02000
+                          goMAIN         EQU      *              ; program entry point
+02000    2000 2  0,0000 0                INHINT                  ; disable interrupts
+                          repeat         EQU      *              ; program entry point
+02001    2001 0  1,2007 1                TC       chkOVRFL       ; Test instructions.
+                          done           EQU      *              ; trap point
+02002    2002 0  1,2002 1                TC       done           ; finished, TC trap
+                          ;		TC	repeat		; finished, TC trap
+                          
+                          
+                          ; ----------------------------------------------
+                          ; TEST Overflow
+                          ; Verifies the following:
+                          ; - Set C(A) = b(A) + C(K)
+                          ; - Take next instruction from L+1
+                          ; - if C(A) has positive overflow,
+                          ; -- increment overflow counter by 1
+                          ; - if C(A) has negative overflow,
+                          ; -- decrement overflow counter by 1
+                          ; ----------------------------------------------
+02003    2003     12345 0 RSLTcode       DS       START          ; Start code value
+02004    2004     00000 1 ADplus0        DS       +0             
+02005    2005     00001 0 ADplus1        DS       1              
+02006    2006     25252 0 AD25252        DS       %25252         ; +10922 decimal (10 1010 1010 1010)
+                          
+                          ; ----------------------------------------------
+                          ; START of TEST
+                          ; ----------------------------------------------
+                          chkOVRFL       EQU      *              ; entry point for test
+*** ERROR: STRTcode undefined.
+02007    2007 3  0,0000 1                CAF      STRTcode       ; Initialize result code
+02010    2010 5  0,0100 0                TS       curtest        ; set current test code to PASS
+                          
+                          ; ----------------------------------------------
+                          ; TEST3: sum positive, overflow
+                          ; initialize overflow counter and positive overflow storage
+                          ; ----------------------------------------------
+02011    2011 3  1,2004 1                CAF      ADplus0        
+02012    2012 5  0,0034 0                TS       OVFCNTR        
+                          
+                          ; add: %25252 + %25252 = %52524 (sign + 14 magnitude) X=0x2AAA Y=0x2AAA U=0x5554 CO=0x0000 CI=0x0000  
+02013    2013 3  1,2006 0                CAF      AD25252        
+02014    2014 6  1,2006 0                AD       AD25252        
+                          
+                          ; ----------------------------------------------
+                          ; verify overflow counter =%00001
+                          ; ----------------------------------------------
+02015    2015 4  0,0034 1                CS       OVFCNTR        ; get -A
+02016    2016 6  1,2005 0                AD       ADplus1        ; put (-A) + expected value in A
+                          
+02017    2017 3  1,2006 0                CAF      AD25252        
+02020    2020 6  1,2006 0                AD       AD25252        
+                          
+                          ; ----------------------------------------------
+                          ; verify overflow counter =%00001
+                          ; ----------------------------------------------
+02021    2021 4  0,0034 1                CS       OVFCNTR        ; get -A
+02022    2022 6  1,2005 0                AD       ADplus1        ; put 
+                          
+                          ; ----------------------------------------------
+                          ; verify overflow counter =%00001
+                          ; ----------------------------------------------
+02023    2023 3  0,0034 0                XCH      OVFCNTR        ; put overflow into  A
+02024    2024 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02025    2025 0  1,2002 1                TC       done           ; Return to main program
+                          ; ----------------------------------------------
+                          
+                          
+
+Assembly complete. Errors = 1
+
+Symbol table:
+START          012345   OVFCNTR        000034   curtest        000100   
+GOPROG         002000   goMAIN         002000   repeat         002001   
+done           002002   RSLTcode       002003   ADplus0        002004   
+ADplus1        002005   AD25252        002006   chkOVRFL       002007   

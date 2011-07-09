@@ -1,0 +1,209 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO3 (file:teco3_CYR.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		9/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests editing registers: CYR.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          START          EQU      %00            
+                          
+                          CYRtst         EQU      %01            ; CYR check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          ; CYR test values
+00102    0102     00000 1 CYRval         DS       %0             ; current test value
+00103    0103     00000 1 iCYR           DS       %0             ; current index
+                          
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2001 1                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02001    2001 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02002    2002 0  1,2011 0                TCR      begin          
+                          
+                          ; Test extracode instructions.
+02003    2003 0  1,2036 0                TCR      chkCYR         
+                          
+                          ; Passed all tests.
+02004    2004 0  1,2067 1                TCR      finish         
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02007    2007 0  1,2007 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02010    2010     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CYR EDITING FUNCTION SUBROUTINE
+                          ; Rotate a test value right through CYR 15 times.
+                          ; Test the value against an expected value for each time.
+                          ; After 15 rotations, the value should equal the initial
+                          ; value.
+                          
+02014    2014     00001 0 CYRcode        DS       CYRtst         ; code for this test
+                          
+                          ; CYR test values
+02015    2015     03431 1 CYRinit        DS       %03431         ; init test value
+02016    2016     00016 0 CYRindx        DS       14             ; loop CYRindx+1 times
+                          
+                          ; check CYR against these values
+                          CYRbase        EQU      *              
+02017    2017     03431 1                DS       %03431         ; check #0 (back to start)
+02020    2020     07062 1                DS       %07062         ; check #1
+02021    2021     16144 1                DS       %16144         ; check #2
+02022    2022     34310 1                DS       %34310         ; check #3
+02023    2023     70620 1                DS       %70620         ; check #4
+02024    2024     61441 1                DS       %61441         ; check #5
+02025    2025     43103 1                DS       %43103         ; check #6
+02026    2026     06207 1                DS       %06207         ; check #7
+02027    2027     14416 1                DS       %14416         ; check #8
+02030    2030     31034 1                DS       %31034         ; check #9
+02031    2031     62070 1                DS       %62070         ; check #10
+02032    2032     44161 1                DS       %44161         ; check #11
+02033    2033     10343 1                DS       %10343         ; check #12
+02034    2034     20706 1                DS       %20706         ; check #13
+02035    2035     41614 1                DS       %41614         ; check #14
+                          
+                          chkCYR         EQU      *              
+02036    2036 3  0,0001 0                XCH      Q              
+02037    2037 5  0,0101 1                TS       savQ           ; save return address
+                          
+02040    2040 3  1,2014 0                CAF      CYRcode        
+02041    2041 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+02042    2042 3  1,2015 1                XCH      CYRinit        ; init value to rotate
+02043    2043 5  0,0102 1                TS       CYRval         
+                          
+02044    2044 3  1,2016 1                XCH      CYRindx        ; load init index
+                          
+                          CYRloop        EQU      *              
+02045    2045 5  0,0103 0                TS       iCYR           ; save index
+                          
+                          ; rotate A right (CYR)
+02046    2046 3  0,0102 1                XCH      CYRval         
+02047    2047 5  0,0020 0                TS       CYR            ; rotate
+02050    2050 3  0,0020 0                XCH      CYR            ; put result in A
+02051    2051 5  0,0102 1                TS       CYRval         
+                          
+                          ; verify C(A)
+02052    2052 4  0,0000 0                COM                     ; get -A
+02053    2053 2  0,0103 1                INDEX    iCYR           
+02054    2054 6  1,2017 0                AD       CYRbase        ; put (-A) + expected value in A
+02055    2055 1  0,0000 0                CCS      A              ; compare
+02056    2056 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02057    2057 0  1,2005 0                TC       fail           ; +0
+02060    2060 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02061    2061 1  0,0103 1                CCS      iCYR           ; done?
+02062    2062 0  1,2045 1                TC       CYRloop        ; not yet, do next check
+                          
+02063    2063 3  0,0101 1                XCH      savQ           
+02064    2064 5  0,0001 0                TS       Q              ; restore return address
+02065    2065 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02066    2066     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02067    2067 3  1,2066 0                CAF      PASScode       
+02070    2070 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02071    2071 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   CYRtst         000001   PASS           012345   
+curtest        000100   savQ           000101   CYRval         000102   
+iCYR           000103   GOPROG         002000   goMAIN         002001   
+fail           002005   end            002007   STRTcode       002010   
+begin          002011   CYRcode        002014   CYRinit        002015   
+CYRindx        002016   CYRbase        002017   chkCYR         002036   
+CYRloop        002045   PASScode       002066   finish         002067   
+Q              000001   CYR            000020   A              000000   

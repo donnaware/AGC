@@ -1,0 +1,51 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO5 (file:teco5.asm)
+                          ; 
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2023 1                TC       goMAIN         
+                          
+                          ; interrupt service entry points
+                                         ORG      T3RUPT         ; (RUPT1)
+02004    2004 3  0,0000 1                NOOP                    
+02005    2005 3  1,2031 1                CAF      INTESTV1       ; put test value i A
+02006    2006 2  0,0000 1                RESUME                  
+                          
+                                         ORG      DSRUPT         ; (RUPT3) aka T4RUPT	
+02014    2014 3  0,0000 1                NOOP                    
+02015    2015 3  1,2032 1                CAF      INTESTV3       ; put test value i A
+02016    2016 2  0,0000 1                RESUME                  
+                          
+                                         ORG      KEYRUPT        ; (RUPT4)
+02020    2020 3  0,0000 1                NOOP                    
+02021    2021 3  1,2033 0                CAF      INTESTV4       ; put test value i A
+02022    2022 2  0,0000 1                RESUME                  
+                          
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02023    2023 3  0,0000 1                NOOP                    
+02024    2024 2  0,0000 0                INHINT                  ; disable interrupt
+02025    2025 3  0,0000 1                NOOP                    
+02026    2026 2  0,0000 1                RELINT                  ; enable interrupts
+                          infLoop        EQU      *              
+02027    2027 3  0,0000 1                NOOP                    
+02030    2030 0  1,2027 0                TC       infLoop        
+                          
+02031    2031     11111 0 INTESTV1       DS       %11111         ; a test value
+02032    2032     33333 1 INTESTV3       DS       %33333         ; a test value
+02033    2033     44444 0 INTESTV4       DS       %44444         ; a test value
+                          
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+GOPROG         002000   T3RUPT         002004   DSRUPT         002014   
+KEYRUPT        002020   goMAIN         002023   infLoop        002027   
+INTESTV1       002031   INTESTV3       002032   INTESTV4       002033   

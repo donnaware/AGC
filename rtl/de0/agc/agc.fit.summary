@@ -1,0 +1,16 @@
+Fitter Status : Successful - Sat Jul 09 00:33:08 2011
+Quartus II Version : 10.1 Build 197 01/19/2011 SP 1 SJ Web Edition
+Revision Name : agc
+Top-level Entity Name : AGC
+Family : Cyclone III
+Device : EP3C16F484C6
+Timing Models : Final
+Total logic elements : 1,532 / 15,408 ( 10 % )
+    Total combinational functions : 1,451 / 15,408 ( 9 % )
+    Dedicated logic registers : 648 / 15,408 ( 4 % )
+Total registers : 648
+Total pins : 52 / 347 ( 15 % )
+Total virtual pins : 0
+Total memory bits : 278,528 / 516,096 ( 54 % )
+Embedded Multiplier 9-bit elements : 0 / 112 ( 0 % )
+Total PLLs : 1 / 4 ( 25 % )

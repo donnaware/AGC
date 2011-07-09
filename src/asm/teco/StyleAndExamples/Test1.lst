@@ -1,0 +1,64 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;------------------------------------------------------------------------- 
+                          ; AGC Programming Style example (file:loop1.asm)
+                          ; 
+                          ; Test Results:
+                          ; 
+                          ;	xval	A	(A=after CCS)
+                          ;	----	- 
+                          ;	5	4 
+                          ;	4	3 
+                          ;	3	2 
+                          ;	2	1 
+                          ;	1	0 
+                          ;	0	0 
+                          ;------------------------------------------------------------------------- 
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                                         ORG      %100           
+00100    0100     00000 1 TEMP1          DS       0              
+                          
+                          ;------------------------------------------------------------------------- 
+                                         ORG      GOPROG         
+                          
+                          ;------------------------------------------------------------------------- 
+                          ; Decrementing loop:
+                          ;	- always executes at least once (tests at end of loop)
+                          ;	- loops 'xstart' times; decrements xval
+                          ;------------------------------------------------------------------------- 
+                          
+02000    2000 3  1,2006 0                XCH      xstart         
+                          goback         EQU      *              
+02001    2001 5  0,0100 0                TS       TEMP1          
+                          
+                          ; do something useful (OK to change register A)
+                          
+02002    2002 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02003    2003 1  0,0100 1                CCS      TEMP1          
+                          
+                          
+02004    2004 0  1,2001 1                TC       goback         
+                          
+                          ;------------------------------------------------------------------------- 
+                          
+                          loop1          EQU      *              
+02005    2005 0  1,2005 0                TC       loop1          
+                          
+02006    2006     00005 1 xstart         DS       5              ; somewhere in fixed memory
+                          
+                          ;------------------------------------------------------------------------- 
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+EXTENDER       005777   TEMP1          000100   GOPROG         002000   
+goback         002001   loop1          002005   xstart         002006   
+OUT0           000010   

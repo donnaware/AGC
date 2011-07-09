@@ -1,0 +1,638 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+*** ERROR: # redefined.
+Second pass: generate object code.
+
+                          #              Copyright 2004           
+*** ERROR: Copyright undefined.
+                          
+                          #              This     file           
+*** ERROR: This undefined.
+                          
+                          #              yaAGC    is             
+*** ERROR: yaAGC undefined.
+                          #              it       under          
+*** ERROR: it undefined.
+                          #              the      Free           
+*** ERROR: the undefined.
+                          #              (at      your           
+*** ERROR: (at undefined.
+                          
+                          #              yaAGC    is             
+*** ERROR: yaAGC undefined.
+                          #              but      WITHOUT        
+*** ERROR: but undefined.
+                          #              MERCHANTABILITY or             
+*** ERROR: MERCHANTABILITY undefined.
+                          #              GNU      General        
+*** ERROR: GNU undefined.
+                          
+                          #              You      should         
+*** ERROR: You undefined.
+                          #              along    with           
+*** ERROR: along undefined.
+                          #              Foundation, Inc.,          
+*** ERROR: Foundation, undefined.
+                          
+                          #              Filename: Validation.agc 
+*** ERROR: Filename: undefined.
+                          #              Purpose: This           
+*** ERROR: Purpose: undefined.
+                          #              suite    ---            
+*** ERROR: suite undefined.
+                          #              for      the            
+*** ERROR: for undefined.
+                          #              directly from           
+*** ERROR: directly undefined.
+                          #              Mod      history:       
+*** ERROR: Mod undefined.
+                          #              07/07/04 RSB.           
+*** ERROR: 07/07/04 undefined.
+                          #              07/10/04 RSB.           
+*** ERROR: 07/10/04 undefined.
+                          #              07/23/04 RSB            
+*** ERROR: 07/23/04 undefined.
+                          #              of       the            
+*** ERROR: of undefined.
+                          #              08/12/04 RSB            
+*** ERROR: 08/12/04 undefined.
+                          #              been     fixed          
+*** ERROR: been undefined.
+                          #              I        checked,       
+*** ERROR: I undefined.
+                          #              it,      but            
+*** ERROR: it, undefined.
+                          
+                          #              This     program        
+*** ERROR: This undefined.
+                          #              program  that           
+*** ERROR: program undefined.
+                          #              What     it             
+*** ERROR: What undefined.
+                          
+                          #              1.       Clears         
+*** ERROR: 1. undefined.
+                          #              2.       Perform        
+*** ERROR: 2. undefined.
+                          #              a)       Writes         
+*** ERROR: a) undefined.
+                          #              b)       Turns          
+*** ERROR: b) undefined.
+                          #              c)       Waits          
+*** ERROR: c) undefined.
+                          #              d)       Turns          
+*** ERROR: d) undefined.
+                          #              e)       Proceeds       
+*** ERROR: e) undefined.
+                          #              3.       When           
+*** ERROR: 3. undefined.
+                          
+                          #              To       keep           
+*** ERROR: To undefined.
+                          #              code     is             
+*** ERROR: code undefined.
+                          
+                          
+                          
+                                         SETLOC   4000           
+*** ERROR: SETLOC undefined.
+                          
+                                         #        An             
+*** ERROR: # undefined.
+                                         #        interested     
+*** ERROR: # undefined.
+                                         #        now            
+*** ERROR: # undefined.
+                                         #        so             
+*** ERROR: # undefined.
+                          
+                                         #        We             
+*** ERROR: # undefined.
+                                         #        mind,          
+*** ERROR: # undefined.
+                                         #        extent         
+*** ERROR: # undefined.
+                          
+                                         #        Initialization. 
+*** ERROR: # undefined.
+00000    0000 2  0,0000 0                INHINT                  
+                                         CA       ZEROES         
+*** ERROR: CA undefined.
+*** ERROR: ERRNUM undefined.
+00001    0001 5  0,0000 1                TS       ERRNUM         
+*** ERROR: ERRSUB undefined.
+00002    0002 5  0,0000 1                TS       ERRSUB         
+                          
+                          #              The      following      
+*** ERROR: The undefined.
+                          #              around   has            
+*** ERROR: around undefined.
+                          #              #        A              
+*** ERROR: # undefined.
+                          #              #        (given         
+*** ERROR: # undefined.
+                          #              #        simulated      
+*** ERROR: # undefined.
+                          #              #        AGC            
+*** ERROR: # undefined.
+                          #              CA       THREE          
+*** ERROR: CA undefined.
+*** ERROR: TEMPI undefined.
+00003    0003 5  0,0000 1 #INITLOOP      TS       TEMPI          
+                          #              CA       MAXP           
+*** ERROR: CA undefined.
+00004    0004 1  0,0000 0 #              CCS      A              
+                          #              TCF      -1             
+*** ERROR: TCF undefined.
+                          #              CA       TEMPI          
+*** ERROR: CA undefined.
+00005    0005 1  0,0000 0 #              CCS      A              
+                          #              TCF      INITLOOP       
+*** ERROR: TCF undefined.
+                          
+*** ERROR: ERRORDSP undefined.
+00006    0006 0  0,0000 1                TC       ERRORDSP       
+                          
+                          #              Just     a              
+*** ERROR: Just undefined.
+                          #LOOP          INCR     ERRNUM         
+*** ERROR: INCR undefined.
+*** ERROR: ERRORDSP undefined.
+00007    0007 0  0,0000 1 #              TC       ERRORDSP       
+                          #              TCF      LOOP           
+*** ERROR: TCF undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         #        next           
+*** ERROR: # undefined.
+                                         #        cunningly      
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         CA       Z              
+*** ERROR: CA undefined.
+*** ERROR: L undefined.
+00010    0010 5  0,0000 1 DEST1          TS       L              
+                                         CA       WHERE1         
+*** ERROR: CA undefined.
+00011    0011 2  0,0000 1                EXTEND                  
+*** ERROR: L undefined.
+00012    0012 6  0,0000 1                SU       L              
+00013    0013 2  0,0000 1                EXTEND                  
+                                         BZF      TEST1OK        
+*** ERROR: BZF undefined.
+*** ERROR: ERRORDSP undefined.
+00014    0014 0  0,0000 1                TC       ERRORDSP       
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         #        I've           
+*** ERROR: # undefined.
+                          CYCLSHFT       INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         CA       CONC+S1        
+*** ERROR: CA undefined.
+00015    0015 5  0,0020 0                TS       CYR            
+00016    0016 5  0,0022 1                TS       CYL            
+00017    0017 5  0,0021 1                TS       SR             
+*** ERROR: EDOP undefined.
+00020    0020 5  0,0000 1                TS       EDOP           
+00021    0021 6  0,0020 0                AD       CYR            
+00022    0022 6  0,0022 1                AD       CYL            
+00023    0023 6  0,0021 1                AD       SR             
+*** ERROR: EDOP undefined.
+00024    0024 6  0,0000 1                AD       EDOP           
+*** ERROR: CONC undefined.
+*** ERROR: S2 undefined.
+00025    0025 6  0,0000 1                AD       CONC+S2        
+00026    0026 0 17,7776 0                TC       -1CHK          
+00027    0027 6  0,0020 0                AD       CYR            
+00030    0030 6  0,0022 1                AD       CYL            
+00031    0031 6  0,0021 1                AD       SR             
+*** ERROR: EDOP undefined.
+00032    0032 6  0,0000 1                AD       EDOP           
+*** ERROR: S undefined.
+00033    0033 6  0,0001 0                AD       S+1            
+00034    0034 0 17,7776 0                TC       -1CHK          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Tests          
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         TCF      BANK3          
+*** ERROR: TCF undefined.
+                                         SETLOC   6000           
+*** ERROR: SETLOC undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         INCR     ERRNUM         
+*** ERROR: INCR undefined.
+                                         #        ...            
+*** ERROR: # undefined.
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Test           
+*** ERROR: # undefined.
+                                         #        Appendix       
+*** ERROR: # undefined.
+                                         #        and            
+*** ERROR: # undefined.
+                          
+                          
+                                         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++                
+*** ERROR: #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ undefined.
+                                         #        Tests          
+*** ERROR: # undefined.
+                                         #        to             
+*** ERROR: # undefined.
+                                         CA       MAXERR         
+*** ERROR: CA undefined.
+*** ERROR: ERRNUM undefined.
+00035    0035 5  0,0000 1                TS       ERRNUM         
+                                         CA       ZEROES         
+*** ERROR: CA undefined.
+*** ERROR: ERRSUB undefined.
+00036    0036 5  0,0000 1                TS       ERRSUB         
+*** ERROR: ERRORDSP undefined.
+00037    0037 0  0,0000 1                TC       ERRORDSP       
+                          DONE           TCF      DONE           
+*** ERROR: TCF undefined.
+                          
+                          
+                          #              Various  useful         
+*** ERROR: Various undefined.
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+
+Assembly complete. Errors = 271
+
+Symbol table:
+#              000000   #------------------- 000000   #INITLOOP      000003   
+#LOOP          000007   DEST1          000010   TEST1OK        000015   
+CYCLSHFT       000015   $ValidateCCS.agc 000035   $ValidateDAS.agc 000035   
+$ValidateLXCH.agc 000035   $ValidateINCR.agc 000035   $ValidateADS.agc 000035   
+$ValidateCA.agc 000035   $ValidateCS.agc 000035   $ValidateTS.agc 000035   
+$ValidateINDEX.agc 000035   BANK3          000035   $ValidateDXCH.agc 000035   
+$ValidateXCH.agc 000035   $ValidateAD.agc 000035   $ValidateMASK.agc 000035   
+$ValidateIO.agc 000035   $ValidateDV.agc 000035   $ValidateBZF.agc 000035   
+$ValidateMSU.agc 000035   $ValidateQXCH.agc 000035   $ValidateAUG.agc 000035   
+$ValidateDIM.agc 000035   $ValidateDCA.agc 000035   $ValidateDCS.agc 000035   
+$ValidateSU.agc 000035   $ValidateBZMF.agc 000035   $ValidateMP.agc 000035   
+$ValidateX.agc 000035   $ValidateNOOP.agc 000035   $ValidateDDOUBL.agc 000035   
+$ValidateZX.agc 000035   $ValidateCOM.agc 000035   $ValidateOVSK.agc 000035   
+$ValidateTCAA.agc 000035   $ValidateDOUBLE.agc 000035   $ValidateDCOM.agc 000035   
+$ValidateSQUARE.agc 000035   $ValidateDTCB.agc 000035   $ValidateDTCF.agc 000035   
+$ValidateSmally.agc 000035   DONE           000040   #-------------------  000040   
+$Errordsp.agc  000040   $Utilities.agc 000040   $VariablesAndConstan  000040   
+A              000000   CYR            000020   CYL            000022   
+SR             000021   

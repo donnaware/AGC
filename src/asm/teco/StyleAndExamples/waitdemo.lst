@@ -1,0 +1,892 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; WAITLIST demonstration (file:waitdemo.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		11/13/2001
+                          ; 
+                          ; PURPOSE:
+                          ; AGC WAITLIST demonstration program.
+                          ; 
+                          ; OPERATION:
+                          ; TBD.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - No special effort was made to optimize the algorithms or memory usage.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          ; ----------------------------------------------
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          ; ==============================================
+                          ; ERASEABLE MEMORY:
+                          
+                                         ORG      BANK0          ; immediately following counters
+                          
+                          ; ==============================================
+                          ; WAITLIST data area
+                          ; ==============================================
+                          
+                          MAXTASK        EQU      7              ; max number of tasks
+                          MAXVAL         EQU      %037777        ; largest pos 15-bit int (+16383 decimal)
+                          MAXDELAY       EQU      12000          ; 120 seconds (in .01 sec ticks)
+                          MAXTIMEOUT     EQU      MAXVAL-MAXDELAY+1 ; TIME3 setting for MAXDELAY
+                          
+                          
+                          ; task delta t: number of 10 mSec ticks until timeout.
+                          ;   i.e.: 0=timeout, 1=10mS until timeout, 2=20mS until timeout...
+                          ;   maximum time delay is 120 (decimal) seconds.
+                          ; 
+                          ; If a task record is empty (unused), the address is always set to
+                          ; zero and the time is set to MAXDELAY.
+                          
+                          ; task record structure
+                          TSKTIME        EQU      0              ; offset to task delta time
+                          TSKADDR        EQU      1              ; offset to 14-bit task address
+                          
+                          TRECSZ         EQU      2              ; size of task record (words)
+                          
+                          ; Array of all task records
+                          WL_taskList    EQU      *              
+00057    0057     00000 1                DS       0              ; record 0
+00060    0060     00000 1                DS       0              
+                          
+00061    0061     00000 1                DS       0              ; record 1
+00062    0062     00000 1                DS       0              
+                          
+00063    0063     00000 1                DS       0              ; record 2
+00064    0064     00000 1                DS       0              
+                          
+00065    0065     00000 1                DS       0              ; record 3
+00066    0066     00000 1                DS       0              
+                          
+00067    0067     00000 1                DS       0              ; record 4
+00070    0070     00000 1                DS       0              
+                          
+00071    0071     00000 1                DS       0              ; record 5
+00072    0072     00000 1                DS       0              
+                          
+00073    0073     00000 1                DS       0              ; record 6
+00074    0074     00000 1                DS       0              
+                          
+                          
+00075    0075     00000 1 WL_IN_saveQ    DS       0              ; return address
+00076    0076     00000 1 WL_IN_taskPtr  DS       0              ; points to task rec in list
+00077    0077     00000 1 WL_IN_loopCnt  DS       0              ; loop counter
+                          
+00100    0100     00000 1 WL_AT_saveQ    DS       0              ; return address
+00101    0101     00000 1 WL_AT_taskPtr  DS       0              ; points to task rec in list
+00102    0102     00000 1 WL_AT_newTime  DS       0              ; time to be inserted
+00103    0103     00000 1 WL_AT_timeLeft DS       0              ; time remaining until timeout
+00104    0104     00000 1 WL_AT_loopCnt  DS       0              ; loop counter
+                          
+00105    0105     00000 1 WL_T3_saveQ    DS       0              ; return address
+                          
+00106    0106     00000 1 WL_ST_saveQ    DS       0              ; return address
+00107    0107     00000 1 WL_ST_taskPtr  DS       0              ; points to task rec in list
+00110    0110     00000 1 WL_ST_newTime  DS       0              ; time-out time
+00111    0111     00000 1 WL_ST_loopCnt  DS       0              ; loop counter
+                          
+00112    0112     00000 1 WL_RT_saveQ    DS       0              ; return address
+00113    0113     00000 1 WL_RT_runAddr  DS       0              ; address of task to run
+                          
+00114    0114     00000 1 WL_RM_saveQ    DS       0              ; return address
+00115    0115     00000 1 WL_RM_taskPtr  DS       0              ; points to task rec in list
+00116    0116     00000 1 WL_RM_taskPtr2 DS       0              ; points to task rec behind taskPtr
+00117    0117     00000 1 WL_RM_loopCnt  DS       0              ; loop counter
+00120    0120     00000 1 WL_RM_retval   DS       0              ; tmp store for return value
+                          
+00121    0121     00000 1 WL_IS_newTime  DS       0              ; INPUT: time to be inserted
+00122    0122     00000 1 WL_IS_newAddr  DS       0              ; INPUT: address to be inserted
+00123    0123     00000 1 WL_IS_saveQ    DS       0              ; return address
+00124    0124     00000 1 WL_IS_taskPtr  DS       0              ; points to task rec in list
+00125    0125     00000 1 WL_IS_taskPtr2 DS       0              ; points to task rec ahead of taskPtr
+00126    0126     00000 1 WL_IS_loopCnt  DS       0              ; loop counter
+                          
+                          ; ==============================================
+                          ; FIXED MEMORY:
+                          
+                          ; ----------------------------------------------
+                          ; EXECUTION ENTRY POINTS
+                          ; ----------------------------------------------
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2036 0                TC       goMAIN         ; AGC (re)start begins here!
+                          
+                          ; interrupt service entry points (H/W interrupt vectors)
+                                         ORG      T3RUPT         
+02004    2004 5  0,0026 0                TS       ARUPT          ; TIME3 interrupt entry point
+02005    2005 3  0,0001 0                XCH      Q              
+02006    2006 5  0,0027 1                TS       QRUPT          
+02007    2007 0  1,2513 1                TC       goT3           
+                          
+                                         ORG      ERRUPT         
+02010    2010 5  0,0026 0                TS       ARUPT          
+02011    2011 3  0,0001 0                XCH      Q              
+02012    2012 5  0,0027 1                TS       QRUPT          
+02013    2013 0  1,2515 1                TC       goER           
+                          
+                                         ORG      DSRUPT         
+02014    2014 5  0,0026 0                TS       ARUPT          
+02015    2015 3  0,0001 0                XCH      Q              
+02016    2016 5  0,0027 1                TS       QRUPT          
+02017    2017 0  1,2516 1                TC       goDS           
+                          
+                                         ORG      KEYRUPT        ; DSKY keyboard interrupt entry point
+02020    2020 5  0,0026 0                TS       ARUPT          
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0027 1                TS       QRUPT          
+02023    2023 0  1,2517 0                TC       goKEY          
+                          
+                          
+                                         ORG      UPRUPT         
+02024    2024 5  0,0026 0                TS       ARUPT          
+02025    2025 3  0,0001 0                XCH      Q              
+02026    2026 5  0,0027 1                TS       QRUPT          
+02027    2027 0  1,2520 1                TC       goUP           
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY CONSTANTS (shared)
+                          ; ----------------------------------------------
+                          
+02030    2030     00200 0 ofbit          DS       %200           ; OUT1, bit 8 initiates standby
+02031    2031     00000 1 zero           DS       0              
+02032    2032     00001 0 one            DS       1              
+02033    2033     06000 1 bankAddr       DS       %6000          ; fixed-switchable addr range starts here
+02034    2034     01777 1 lowAddr        DS       %1777          ; mask for 10-bit address
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          ; ----------------------------------------------
+                          
+02035    2035     00050 1 time1          DS       %50            
+                          
+                          goMAIN         EQU      *              
+02036    2036 2  0,0000 0                INHINT                  ; inhibit interrupts
+                          
+                          ; first, check for standby operation.
+02037    2037 3  1,2030 0                XCH      ofbit          
+02040    2040 5  0,0011 1                TS       OUT1           
+                          
+02041    2041 0  1,2057 1                TCR      WL_initWL      ; initialize WAITLIST
+                          
+02042    2042 3  1,2035 0                CAF      time1          ; add a test task
+02043    2043 0  1,2105 1                TC       WL_addTask     
+02044    2044     22000 1                DS       task1          ; 14-bit task address
+                          
+02045    2045 2  0,0000 1                RELINT                  
+02046    2046 0  1,2046 1 theend         TC       theend         
+                          
+                          ; ==============================================
+                          ; WAITLIST constants
+                          ; ----------------------------------------------
+                          
+02047    2047     00002 0 WL_taskRecSize DS       TRECSZ         ; size of a task record (words)
+02050    2050     00057 0 WL_tskLstStart DS       WL_taskList    ; starting address for task list
+02051    2051     00073 0 WL_tskLstEnd   DS       MAXTASK-1@TRECSZ+WL_taskList 
+02052    2052     00006 1 WL_numTasks    DS       MAXTASK-1      ; init loop counter for all tasks
+02053    2053     00005 1 WL_numTasks1   DS       MAXTASK-2      ; init loop counter for all tasks - 1
+                          
+02054    2054     37777 1 WL_maxVal      DS       MAXVAL         
+02055    2055     27340 0 WL_maxDelay    DS       MAXDELAY       
+02056    2056     10440 0 WL_maxTimeOut  DS       MAXTIMEOUT     
+                          
+                          
+                          ; ----------------------------------------------
+                          ; WL_initWL - INITIALIZE WAITLIST
+                          ; 
+                          ; Subroutine initializes the eraseable memory segment for WAITLIST. 
+                          ; Necessary in case the AGC is restarted.
+                          ; 
+                          ; Note: the valid range for TIME3 is 10440 to 37777 (which spans 
+                          ;   12000 (base 10) ticks, which corresponds to 120 seconds)
+                          ;   positive overflow occurs at 40000, which triggers T3RUPT.  
+                          ;   TIME3 values of 0 to 10437 are illegal; these values occur
+                          ;   after timeout when the counter overflows. TIME3 values in this
+                          ;   range indicate that timeout has occurred and that T3RUPT is
+                          ;   presently occuring, or is pending.
+                          ; ----------------------------------------------
+                          WL_initWL      EQU      *              
+02057    2057 3  0,0001 0                XCH      Q              
+02060    2060 5  0,0075 0                TS       WL_IN_saveQ    ; save return address
+                          
+02061    2061 3  1,2056 0                CAF      WL_maxTimeOut  
+02062    2062 5  0,0037 0                TS       TIME3          
+                          
+                          ; Iterate through task list and initialize all records to NIL
+                          
+02063    2063 3  1,2050 0                CAF      WL_tskLstStart ; init pointer to start of list
+02064    2064 5  0,0076 0                TS       WL_IN_taskPtr  
+                          
+02065    2065 3  1,2052 1                CAF      WL_numTasks    ; loop for number of tasks
+                          WL_IN_loop     EQU      *              
+02066    2066 5  0,0077 1                TS       WL_IN_loopCnt  
+                          
+02067    2067 3  1,2055 0                CAF      WL_maxDelay    
+02070    2070 2  0,0076 1                INDEX    WL_IN_taskPtr  
+02071    2071 5  0,0000 1                TS       TSKTIME        
+                          
+02072    2072 3  1,2031 1                CAF      zero           
+02073    2073 2  0,0076 1                INDEX    WL_IN_taskPtr  
+02074    2074 5  0,0001 0                TS       TSKADDR        
+                          
+02075    2075 3  0,0076 0                XCH      WL_IN_taskPtr  ; bump task pointer back 1 record
+02076    2076 6  1,2047 0                AD       WL_taskRecSize 
+02077    2077 5  0,0076 0                TS       WL_IN_taskPtr  
+                          
+02100    2100 1  0,0077 0                CCS      WL_IN_loopCnt  ; done checking task list?
+02101    2101 0  1,2066 0                TC       WL_IN_loop     ; not yet
+                          
+02102    2102 3  0,0075 0                XCH      WL_IN_saveQ    
+02103    2103 5  0,0001 0                TS       Q              ; restore return address
+02104    2104 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; WL_addTask - ADD TASK TO WAITLIST
+                          ; 
+                          ; Subroutine adds a task to WL_taskList. The following conditions are
+                          ; true upon entry.
+                          ; 1) The task list is sorted so the next task scheduled for execution 
+                          ;    is at the front of the list.
+                          ; 2) If no tasks are currently scheduled, the task record at the front
+                          ;    of the list will be NIL.
+                          ; 3) Unused (NIL) records in the task list have their time fields set to
+                          ;    MAXDELAY and their address fields set to zero.
+                          ; 4) If any tasks are on the waitlist, the time field in that task's
+                          ;    record will contain the remaining time AFTER the next timeout. The
+                          ;    task scheduled for execution at timeout will have a time remaining
+                          ;    of zero. 
+                          ;    Any other tasks that will execute at that time will also have a time of 
+                          ;    zero. Tasks that will execute some time in the future AFTER timeout 
+                          ;    will have nonzero times; these times indicate the additional time 
+                          ;    needed after the next timeout.
+                          ; 
+                          ; WL_addTask can be called from from an interrupt, or from normal execution.
+                          ; It is the only public function of the waitlist.
+                          ; 
+                          ; A task is scheduled for execution by calling 'WL_addTask' and 
+                          ; furnishing the time-out time and starting address.
+                          ;	L	XCH	TASK_TIMEOUT	; in 10 mSec ticks
+                          ;	L+1	TC	WL_addTask 
+                          ;	L+2	DS	TASK_ADDRESS	; 14-bit address
+                          ;	L+3	... execution resumes here
+                          ; 
+                          ; TASK_TIMEOUT = a positive integer from 1 - MAXDELAY that specifies the delay
+                          ;    in 10 mSec ticks. Maximum delay is 12000 (2 minutes).
+                          ; TASK_ADDRESS = starting address of the task (14-bit address)
+                          ; 
+                          ; Tasks execute when TIME3 overflows and generates an interrupt (T3RUPT).
+                          ; Tasks terminate themselves by jumping to ENDTASK.
+                          ;	TC	ENDTASK 
+                          ; 
+                          ; Because tasks execute during an interrupt, they should be fairly short.
+                          ; Tasks can initiate longer operations by scheduling a 'job' using EXEC.
+                          ; ----------------------------------------------
+                          
+                          WL_addTask     EQU      *              
+02105    2105 2  0,0000 0                INHINT                  
+02106    2106 5  0,0102 1                TS       WL_AT_newTime  ; save task time
+02107    2107 3  0,0001 0                XCH      Q              
+02110    2110 5  0,0100 0                TS       WL_AT_saveQ    ; save return address-1
+                          
+02111    2111 3  1,2031 1                CAF      zero           
+02112    2112 2  1,2051 0                INDEX    WL_tskLstEnd   
+02113    2113 6  0,0001 0                AD       TSKADDR        
+02114    2114 1  0,0000 0                CCS      A              ; list full?
+02115    2115 0  1,2217 1                TC       WL_AT_done     ; >0 yes, so give up
+                          
+                          ; Calculate time remaining until currently scheduled time-out.
+                          
+02116    2116 3  1,2031 1                CAF      zero           
+02117    2117 6  0,0037 0                AD       TIME3          ; get time
+02120    2120 5  0,0103 0                TS       WL_AT_timeLeft ; save it, temporarily
+                          
+                          ; Did TIME3 recently overflow? If so, we are inside T3RUPT, or T3RUPT
+                          ; is pending. TIME3 values from 0 - 10437 are not legal, so they
+                          ; indicate that an overflow has occurred.
+                          
+02121    2121 4  1,2056 1                CS       WL_maxTimeOut  
+02122    2122 6  0,0103 0                AD       WL_AT_timeLeft 
+02123    2123 1  0,0000 0                CCS      A              ; TIME3 recently overflowed?
+02124    2124 0  1,2140 0                TC       WL_AT_noOvf    ; >0 no
+02125    2125 0  1,2140 0                TC       WL_AT_noOvf    ; +0 no
+02126    2126 0  1,2130 1                TC       *+2            ; <0 yes
+02127    2127 0  1,2140 0                TC       WL_AT_noOvf    ; -0 no
+                          
+                          ; TIME3 already timed-out, so we must be inside T3RUPT, or T3RUPT
+                          ; is pending. Just add the new task to the list. No time correction
+                          ; is necessary; the epoch is NOW.
+                          
+02130    2130 3  1,2031 1                CAF      zero           
+02131    2131 6  0,0102 1                AD       WL_AT_newTime  
+02132    2132 5  0,0121 0                TS       WL_IS_newTime  ; set time field in new task record
+                          
+02133    2133 2  0,0100 1                INDEX    WL_AT_saveQ    ; indirectly address WL_AT_saveQ
+02134    2134 3  0,0000 1                CAF      0              
+02135    2135 5  0,0122 0                TS       WL_IS_newAddr  ; set addr field in new task record
+                          
+02136    2136 0  1,2344 0                TCR      WL_insert      ; add new task to task list
+02137    2137 0  1,2217 1                TC       WL_AT_done     
+                          
+                          ; TIME3 has not timed out yet. Calculate time remaining until timeout
+                          ; (timeout occurs when TIME3 overflows)
+                          
+                          WL_AT_noOvf    EQU      *              
+02140    2140 4  0,0103 1                CS       WL_AT_timeLeft ; get -TIME3
+02141    2141 6  1,2054 1                AD       WL_maxVal      
+02142    2142 6  1,2032 1                AD       one            
+02143    2143 5  0,0103 0                TS       WL_AT_timeLeft ; time left = -TIME3 + %37777 + 1
+                          
+                          ; Compare that time against the timeout for the new task.
+                          
+                          WL_AT_chkOrder EQU      *              
+02144    2144 4  0,0102 0                CS       WL_AT_newTime  
+02145    2145 6  0,0103 0                AD       WL_AT_timeLeft 
+02146    2146 1  0,0000 0                CCS      A              ; compare new task to current
+02147    2147 0  1,2162 0                TC       WL_AT_mkFirst  ; >0 (make new task 1st)
+02150    2150 0  1,2152 0                TC       *+2            ; +0
+02151    2151 0  1,2152 0                TC       *+1            ; <0
+                          
+                          ; The new task does not need to run before the current time-out, so
+                          ; just add it to the list. Subtract the remaining time interval from the 
+                          ; new task's time, so the new task will have the same epoch as the other 
+                          ; tasks on the list.
+                          
+02152    2152 4  0,0103 1                CS       WL_AT_timeLeft 
+02153    2153 6  0,0102 1                AD       WL_AT_newTime  ; make epoch correction
+02154    2154 5  0,0121 0                TS       WL_IS_newTime  ; set time field in new task record
+                          
+02155    2155 2  0,0100 1                INDEX    WL_AT_saveQ    ; indirectly address WL_AT_saveQ
+02156    2156 3  0,0000 1                CAF      0              
+02157    2157 5  0,0122 0                TS       WL_IS_newAddr  ; set addr field in new task record
+                          
+02160    2160 0  1,2344 0                TCR      WL_insert      ; add new task to task list
+02161    2161 0  1,2217 1                TC       WL_AT_done     
+                          
+                          ; The new task needs to run prior to the current time-out. Add the time
+                          ; remaining to all tasks currently on the list to change their epoch
+                          ; to NOW.
+                          
+                          WL_AT_mkFirst  EQU      *              
+02162    2162 3  1,2050 0                CAF      WL_tskLstStart ; set pointer to front of list
+02163    2163 5  0,0101 1                TS       WL_AT_taskPtr  
+                          
+02164    2164 3  1,2052 1                CAF      WL_numTasks    ; loop for number of tasks
+                          WL_AT_loop     EQU      *              
+02165    2165 5  0,0104 1                TS       WL_AT_loopCnt  
+                          
+02166    2166 3  1,2031 1                CAF      zero           
+02167    2167 2  0,0101 0                INDEX    WL_AT_taskPtr  
+02170    2170 6  0,0001 0                AD       TSKADDR        
+02171    2171 1  0,0000 0                CCS      A              ; end of list?
+02172    2172 0  1,2174 1                TC       *+2            ; >0 no, so keep going
+02173    2173 0  1,2207 0                TC       WL_AT_schTsk   ; +0 yes, add the new task
+                          
+02174    2174 3  1,2031 1                CAF      zero           
+02175    2175 2  0,0101 0                INDEX    WL_AT_taskPtr  
+02176    2176 6  0,0000 1                AD       TSKTIME        
+02177    2177 6  0,0103 0                AD       WL_AT_timeLeft ; time-out = time-out + timeLeft
+02200    2200 2  0,0101 0                INDEX    WL_AT_taskPtr  
+02201    2201 5  0,0000 1                TS       TSKTIME        
+                          
+02202    2202 3  0,0101 1                XCH      WL_AT_taskPtr  ; bump task pointer back 1 record
+02203    2203 6  1,2047 0                AD       WL_taskRecSize 
+02204    2204 5  0,0101 1                TS       WL_AT_taskPtr  
+                          
+02205    2205 1  0,0104 0                CCS      WL_AT_loopCnt  ; done fixing the times?
+02206    2206 0  1,2165 1                TC       WL_AT_loop     ; not yet
+                          
+                          ; Now that the tasks all share the same epoch, add the new task to the
+                          ; list and call the scheduler to schedule the next task.
+                          
+                          WL_AT_schTsk   EQU      *              
+02207    2207 3  1,2031 1                CAF      zero           
+02210    2210 6  0,0102 1                AD       WL_AT_newTime  
+02211    2211 5  0,0121 0                TS       WL_IS_newTime  ; set time field in new task record
+                          
+02212    2212 2  0,0100 1                INDEX    WL_AT_saveQ    ; indirectly address WL_AT_saveQ
+02213    2213 3  0,0000 1                CAF      0              
+02214    2214 5  0,0122 0                TS       WL_IS_newAddr  ; set addr field in new task record
+                          
+02215    2215 0  1,2344 0                TCR      WL_insert      ; add new task to task list
+                          
+02216    2216 0  1,2270 0                TCR      WL_schedTask   ; schedule the next task
+                          
+                          WL_AT_done     EQU      *              
+02217    2217 3  0,0100 0                XCH      WL_AT_saveQ    
+02220    2220 6  1,2032 1                AD       one            
+02221    2221 5  0,0001 0                TS       Q              ; restore return address
+02222    2222 2  0,0000 1                RELINT                  
+02223    2223 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; T3Task - T3 TIMEOUT
+                          ; 
+                          ; Perform WAITLIST activities when TIME3 times-out. Called by the 
+                          ; T3 interrupt handler.
+                          ; ----------------------------------------------
+                          
+                          WL_TIME3task   EQU      *              
+02224    2224 3  0,0001 0                XCH      Q              
+02225    2225 5  0,0105 0                TS       WL_T3_saveQ    ; save return address
+                          
+                          ; Execute all timed-out tasks.
+                          
+02226    2226 0  1,2233 1                TCR      WL_runTasks    
+                          
+                          ; Set up TIME3 to overflow at the next task's time-out.
+                          ; Adjust the time-outs for all remaining tasks.
+                          
+02227    2227 0  1,2270 0                TCR      WL_schedTask   
+                          
+02230    2230 3  0,0105 0                XCH      WL_T3_saveQ    
+02231    2231 5  0,0001 0                TS       Q              ; restore return address
+02232    2232 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; WL_runTasks - RUN TIMED-OUT TASK(S)
+                          ; 
+                          ; Runs all tasks timed-out on WL_taskList. Tasks are removed
+                          ; from the list before they are run.
+                          ; ----------------------------------------------
+                          
+                          WL_runTasks    EQU      *              
+02233    2233 3  0,0001 0                XCH      Q              
+02234    2234 5  0,0112 0                TS       WL_RT_saveQ    ; save return address
+                          
+                          ; loop, checking the task on the front of the list. If it is
+                          ; timed out, remove it from the list and run it.
+                          
+                          WL_RT_loop     EQU      *              
+02235    2235 3  1,2031 1                CAF      zero           
+02236    2236 2  1,2050 1                INDEX    WL_tskLstStart 
+02237    2237 6  0,0000 1                AD       TSKTIME        
+02240    2240 1  0,0000 0                CCS      A              ; task timed out?
+02241    2241 0  1,2265 1                TC       WL_RT_done     ; >0 no, so we are done
+02242    2242 0  1,2244 1                TC       *+2            ; +0
+02243    2243 0  1,2244 1                TC       *+1            ; <0
+                          
+                          ; This task has timed out, so run it.
+                          
+02244    2244 0  1,2436 1                TCR      WL_remove      ; remove task from list
+02245    2245 5  0,0113 1                TS       WL_RT_runAddr  ; save 14-bit address of task to run
+                          
+                          ; The task address is always 14-bit, so check whether the address falls
+                          ; within erasable or fixed-fixed memory. If so, use it as-is; otherwise,
+                          ; set the bank register and change the address to 12-bit.
+                          
+02246    2246 4  0,0000 0                COM                     ; -(14bitAddr)+%6000
+02247    2247 6  1,2033 0                AD       bankAddr       
+02250    2250 1  0,0000 0                CCS      A              ; task is bank addressed?
+02251    2251 0  1,2262 0                TC       WL_RT_runIt    ; >0 no, just run it, as is
+02252    2252 0  1,2254 0                TC       *+2            ; +0 yes
+02253    2253 0  1,2254 0                TC       *+1            ; <0 yes
+                          
+02254    2254 3  1,2031 1                CAF      zero           
+02255    2255 6  0,0113 1                AD       WL_RT_runAddr  
+02256    2256 5  0,0015 0                TS       BANK           ; set the bank
+                          
+02257    2257 7  1,2034 0                MASK     lowAddr        ; get lowest 10-bits of address
+02260    2260 6  1,2033 0                AD       bankAddr       ; set bits 11,12 for fixed-switchable
+02261    2261 5  0,0113 1                TS       WL_RT_runAddr  
+                          
+                          WL_RT_runIt    EQU      *              
+02262    2262 2  0,0113 0                INDEX    WL_RT_runAddr  ; apply indirect address to next instr.
+02263    2263 0  0,0000 1                TC       0              ; run the task
+                          
+                          ENDTASK        EQU      *              ; task returns here
+02264    2264 0  1,2235 1                TC       WL_RT_loop     ; check next task on list
+                          
+                          WL_RT_done     EQU      *              
+02265    2265 3  0,0112 0                XCH      WL_RT_saveQ    
+02266    2266 5  0,0001 0                TS       Q              ; restore return address
+02267    2267 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; WL_schedTask - SCHEDULE NEXT TASK
+                          ; 
+                          ; Schedule task on the front of list for the next time-out. Adjust the 
+                          ; time-out for all other tasks on the list, so they contain the remaining
+                          ; time after the next timeout.
+                          ; ----------------------------------------------
+                          
+                          WL_schedTask   EQU      *              
+02270    2270 3  0,0001 0                XCH      Q              
+02271    2271 5  0,0106 0                TS       WL_ST_saveQ    ; save return address
+                          
+02272    2272 3  1,2031 1                CAF      zero           
+02273    2273 2  1,2050 1                INDEX    WL_tskLstStart 
+02274    2274 6  0,0001 0                AD       TSKADDR        
+02275    2275 1  0,0000 0                CCS      A              ; task scheduled?
+02276    2276 0  1,2300 0                TC       *+2            ; >0 yes
+02277    2277 0  1,2337 1                TC       WL_ST_noTask   ; +0 no, so we are done
+                          
+02300    2300 3  1,2031 1                CAF      zero           
+02301    2301 2  1,2050 1                INDEX    WL_tskLstStart 
+02302    2302 6  0,0000 1                AD       TSKTIME        
+02303    2303 5  0,0110 1                TS       WL_ST_newTime  ; save the new task's time-out
+                          
+                          ; Iterate through all tasks on the list. Subtract the time-out time
+                          ; from each task. (The 1st task on the list will now have a time-out
+                          ; of zero)
+                          
+02304    2304 3  1,2050 0                CAF      WL_tskLstStart ; set pointer to front of list
+02305    2305 5  0,0107 1                TS       WL_ST_taskPtr  
+                          
+02306    2306 3  1,2052 1                CAF      WL_numTasks    ; loop for number of tasks
+                          WL_ST_loop     EQU      *              
+02307    2307 5  0,0111 0                TS       WL_ST_loopCnt  
+                          
+02310    2310 3  1,2031 1                CAF      zero           
+02311    2311 2  0,0107 0                INDEX    WL_ST_taskPtr  
+02312    2312 6  0,0001 0                AD       TSKADDR        
+02313    2313 1  0,0000 0                CCS      A              ; end of list?
+02314    2314 0  1,2316 1                TC       *+2            ; >0 no, so keep going
+02315    2315 0  1,2332 1                TC       WL_ST_setT3    ; +0 yes, set TIME3
+                          
+02316    2316 3  1,2031 1                CAF      zero           
+02317    2317 2  0,0107 0                INDEX    WL_ST_taskPtr  
+02320    2320 6  0,0000 1                AD       TSKTIME        
+02321    2321 2  0,0000 1                EXTEND                  
+02322    2322 6  0,0110 1                SU       WL_ST_newTime  ; time-out = time-out - newtime
+02323    2323 2  0,0107 0                INDEX    WL_ST_taskPtr  
+02324    2324 5  0,0000 1                TS       TSKTIME        
+                          
+02325    2325 3  0,0107 1                XCH      WL_ST_taskPtr  ; bump task pointer back 1 record
+02326    2326 6  1,2047 0                AD       WL_taskRecSize 
+02327    2327 5  0,0107 1                TS       WL_ST_taskPtr  
+                          
+02330    2330 1  0,0111 1                CCS      WL_ST_loopCnt  ; done fixing the times?
+02331    2331 0  1,2307 1                TC       WL_ST_loop     ; not yet
+                          
+                          ; Set TIME3 to overflow at the time-out of the task on the front
+                          ; of the list: TIME3 = %37777 - WL_ST_newTime + 1
+                          
+                          WL_ST_setT3    EQU      *              
+02332    2332 4  0,0110 0                CS       WL_ST_newTime  
+02333    2333 6  1,2054 1                AD       WL_maxVal      
+02334    2334 6  1,2032 1                AD       one            
+02335    2335 5  0,0037 0                TS       TIME3          ; overflow at new time-out time
+02336    2336 0  1,2341 0                TC       WL_ST_done     
+                          
+                          WL_ST_noTask   EQU      *              
+02337    2337 3  1,2056 0                CAF      WL_maxTimeOut  
+02340    2340 5  0,0037 0                TS       TIME3          ; nothing scheduled, reset the clock
+                          
+                          WL_ST_done     EQU      *              
+02341    2341 3  0,0106 0                XCH      WL_ST_saveQ    
+02342    2342 5  0,0001 0                TS       Q              ; restore return address
+02343    2343 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; WL_insert - INSERT TASK INTO SORTED LIST
+                          ; 
+                          ; Insert a task record into the sorted list. Use 'WL_IS_newTime' and
+                          ; 'WL_IS_newAddr' to set the fields of record to be inserted.
+                          ; Performs an insertion sort, with the records sorted by time.
+                          ; Lowest times are at the front of the list. If several records
+                          ; have the same time, the records inserted first will appear first
+                          ; in the list. NIL records have a time of NOTASK and a address
+                          ; of positive zero.
+                          ; ----------------------------------------------
+                          
+                          WL_insert      EQU      *              
+02344    2344 3  0,0001 0                XCH      Q              
+02345    2345 5  0,0123 1                TS       WL_IS_saveQ    ; save return address
+                          
+02346    2346 3  1,2051 1                CAF      WL_tskLstEnd   ; set pointer to back of list
+02347    2347 5  0,0124 0                TS       WL_IS_taskPtr  
+                          
+02350    2350 2  0,0000 1                EXTEND                  
+02351    2351 6  1,2047 0                SU       WL_taskRecSize ; set pointer to rec in front of it
+02352    2352 5  0,0125 1                TS       WL_IS_taskPtr2 
+                          
+02353    2353 3  1,2031 1                CAF      zero           
+02354    2354 2  0,0124 1                INDEX    WL_IS_taskPtr  
+02355    2355 6  0,0001 0                AD       TSKADDR        
+02356    2356 1  0,0000 0                CCS      A              ; list full?
+02357    2357 0  1,2433 1                TC       WL_IS_done     ; >0 yes
+                          
+                          ; Work from the back of the list to the front, pushing each record
+                          ; to the back until the insertion point is found.
+                          
+02360    2360 3  1,2053 0                CAF      WL_numTasks1   ; loop for number of tasks minus 1
+                          WL_IS_loop     EQU      *              
+02361    2361 5  0,0126 1                TS       WL_IS_loopCnt  
+                          
+02362    2362 3  1,2031 1                CAF      zero           
+02363    2363 2  0,0125 0                INDEX    WL_IS_taskPtr2 
+02364    2364 6  0,0001 0                AD       TSKADDR        
+02365    2365 1  0,0000 0                CCS      A              ; previous record is NIL?
+02366    2366 0  1,2370 1                TC       *+2            ; no, so check it
+02367    2367 0  1,2412 1                TC       WL_IS_bumpPtr  ; yes, so skip to next record
+                          
+                          
+                          ; Is this the insertion point?
+                          
+02370    2370 4  0,0121 1                CS       WL_IS_newTime  
+02371    2371 2  0,0125 0                INDEX    WL_IS_taskPtr2 
+02372    2372 6  0,0000 1                AD       TSKTIME        
+02373    2373 1  0,0000 0                CCS      A              ; found insertion point?
+02374    2374 0  1,2400 1                TC       *+4            ; >0 no, keep checking
+02375    2375 0  1,2423 0                TC       WL_IS_insRec   ; +0 yes
+02376    2376 0  1,2423 0                TC       WL_IS_insRec   ; <0 yes
+02377    2377 0  1,2423 0                TC       WL_IS_insRec   ; -0 yes
+                          
+                          ; No, bump the record toward the back of the list.
+                          
+02400    2400 3  1,2031 1                CAF      zero           
+02401    2401 2  0,0125 0                INDEX    WL_IS_taskPtr2 
+02402    2402 6  0,0000 1                AD       TSKTIME        
+02403    2403 2  0,0124 1                INDEX    WL_IS_taskPtr  
+02404    2404 5  0,0000 1                TS       TSKTIME        ; copy time field
+                          
+02405    2405 3  1,2031 1                CAF      zero           
+02406    2406 2  0,0125 0                INDEX    WL_IS_taskPtr2 
+02407    2407 6  0,0001 0                AD       TSKADDR        
+02410    2410 2  0,0124 1                INDEX    WL_IS_taskPtr  
+02411    2411 5  0,0001 0                TS       TSKADDR        ; copy address field
+                          
+                          WL_IS_bumpPtr  EQU      *              
+02412    2412 3  0,0124 0                XCH      WL_IS_taskPtr  ; bump task pointer forward 1 record
+02413    2413 2  0,0000 1                EXTEND                  
+02414    2414 6  1,2047 0                SU       WL_taskRecSize 
+02415    2415 5  0,0124 0                TS       WL_IS_taskPtr  
+                          
+02416    2416 2  0,0000 1                EXTEND                  
+02417    2417 6  1,2047 0                SU       WL_taskRecSize ; set pointer to record in front of it
+02420    2420 5  0,0125 1                TS       WL_IS_taskPtr2 
+                          
+02421    2421 1  0,0126 0                CCS      WL_IS_loopCnt  ; done bumping tasks backward?
+02422    2422 0  1,2361 1                TC       WL_IS_loop     ; not yet
+                          
+                          ; Insert new record.
+                          
+                          WL_IS_insRec   EQU      *              
+02423    2423 3  1,2031 1                CAF      zero           
+02424    2424 6  0,0121 0                AD       WL_IS_newTime  
+02425    2425 2  0,0124 1                INDEX    WL_IS_taskPtr  
+02426    2426 5  0,0000 1                TS       TSKTIME        ; set time field
+                          
+02427    2427 3  1,2031 1                CAF      zero           
+02430    2430 6  0,0122 0                AD       WL_IS_newAddr  
+02431    2431 2  0,0124 1                INDEX    WL_IS_taskPtr  
+02432    2432 5  0,0001 0                TS       TSKADDR        ; set address field
+                          
+                          WL_IS_done     EQU      *              
+02433    2433 3  0,0123 1                XCH      WL_IS_saveQ    
+02434    2434 5  0,0001 0                TS       Q              ; restore return address
+02435    2435 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; WL_remove - REMOVE TASK FROM FRONT OF LIST
+                          ; 
+                          ; Returns the address of the task in register A. If the list is
+                          ; empty, it returns zero in A. If a task is removed from the list,
+                          ; the remaining tasks are moved up to the front.
+                          ; ----------------------------------------------
+                          
+                          WL_remove      EQU      *              
+02436    2436 3  0,0001 0                XCH      Q              
+02437    2437 5  0,0114 0                TS       WL_RM_saveQ    ; save return address
+                          
+02440    2440 3  1,2050 0                CAF      WL_tskLstStart ; set pointer to front of list
+02441    2441 5  0,0115 1                TS       WL_RM_taskPtr  
+                          
+02442    2442 6  1,2047 0                AD       WL_taskRecSize ; set pointer to next rec behind it
+02443    2443 5  0,0116 1                TS       WL_RM_taskPtr2 
+                          
+                          ; Save the address of record at the front of the list.
+                          
+02444    2444 3  1,2031 1                CAF      zero           
+02445    2445 2  0,0115 0                INDEX    WL_RM_taskPtr  
+02446    2446 6  0,0001 0                AD       TSKADDR        
+02447    2447 5  0,0120 1                TS       WL_RM_retval   ; get address of 1st task
+                          
+02450    2450 1  0,0000 0                CCS      A              ; list empty?
+02451    2451 0  1,2453 1                TC       *+2            ; >0, no
+02452    2452 0  1,2507 1                TC       WL_RM_done     ; +0, yes, so exit
+                          
+                          ; Loop through the remaining records in the task list and
+                          ; bubble them up to the front.
+                          
+02453    2453 3  1,2053 0                CAF      WL_numTasks1   ; loop for number of tasks minus 1
+                          WL_RM_loop     EQU      *              
+02454    2454 5  0,0117 0                TS       WL_RM_loopCnt  
+                          
+02455    2455 3  1,2031 1                CAF      zero           
+02456    2456 2  0,0116 0                INDEX    WL_RM_taskPtr2 
+02457    2457 6  0,0000 1                AD       TSKTIME        
+02460    2460 2  0,0115 0                INDEX    WL_RM_taskPtr  
+02461    2461 5  0,0000 1                TS       TSKTIME        ; copy time field
+                          
+02462    2462 3  1,2031 1                CAF      zero           
+02463    2463 2  0,0116 0                INDEX    WL_RM_taskPtr2 
+02464    2464 6  0,0001 0                AD       TSKADDR        
+02465    2465 2  0,0115 0                INDEX    WL_RM_taskPtr  
+02466    2466 5  0,0001 0                TS       TSKADDR        ; copy address field
+                          
+02467    2467 1  0,0000 0                CCS      A              ; remainder of list empty?
+02470    2470 0  1,2472 1                TC       *+2            ; >0, no
+02471    2471 0  1,2507 1                TC       WL_RM_done     ; +0, yes, so exit
+                          
+02472    2472 3  0,0115 1                XCH      WL_RM_taskPtr  ; bump task pointer back 1 record
+02473    2473 6  1,2047 0                AD       WL_taskRecSize 
+02474    2474 5  0,0115 1                TS       WL_RM_taskPtr  
+                          
+02475    2475 6  1,2047 0                AD       WL_taskRecSize ; set pointer to record behind it
+02476    2476 5  0,0116 1                TS       WL_RM_taskPtr2 
+                          
+02477    2477 1  0,0117 1                CCS      WL_RM_loopCnt  ; done bumping tasks upward?
+02500    2500 0  1,2454 0                TC       WL_RM_loop     ; not yet
+                          
+                          ; Since we removed a record, the last record on the list
+                          ; should be NIL.
+                          
+02501    2501 3  1,2055 0                CAF      WL_maxDelay    
+02502    2502 2  0,0115 0                INDEX    WL_RM_taskPtr  
+02503    2503 5  0,0000 1                TS       TSKTIME        ; set time field to NIL
+                          
+02504    2504 3  1,2031 1                CAF      zero           
+02505    2505 2  0,0115 0                INDEX    WL_RM_taskPtr  
+02506    2506 5  0,0001 0                TS       TSKADDR        ; set address field to NIL
+                          
+                          WL_RM_done     EQU      *              
+02507    2507 3  0,0114 0                XCH      WL_RM_saveQ    
+02510    2510 5  0,0001 0                TS       Q              ; restore return address
+02511    2511 3  0,0120 1                XCH      WL_RM_retval   ; return task address in A
+02512    2512 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; RUPT (INTERRUPT) SERVICE ROUTINES
+                          ; ----------------------------------------------
+                          
+                          goT3           EQU      *              
+02513    2513 0  1,2224 1                TCR      WL_TIME3task   ; handle WAITLIST interrupt
+02514    2514 0  1,2521 0                TC       endRUPT        
+                          
+                          goER           EQU      *              
+02515    2515 0  1,2521 0                TC       endRUPT        
+                          
+                          goDS           EQU      *              
+02516    2516 0  1,2521 0                TC       endRUPT        
+                          
+                          goKEY          EQU      *              
+02517    2517 0  1,2521 0                TC       endRUPT        
+                          
+                          goUP           EQU      *              
+02520    2520 0  1,2521 0                TC       endRUPT        
+                          
+                          
+                          endRUPT        EQU      *              
+02521    2521 3  0,0027 1                XCH      QRUPT          ; restore Q
+02522    2522 5  0,0001 0                TS       Q              
+02523    2523 3  0,0026 0                XCH      ARUPT          ; restore A
+02524    2524 2  0,0000 1                RESUME                  ; finished, go back
+                          
+                          ; ----------------------------------------------
+                          ; ----------------------------------------------
+                          ; TEST TASKS
+                          TADDR1         EQU      %50            
+                          TADDR2         EQU      %51            
+                          TADDR3         EQU      %52            
+                          TADDR4         EQU      %53            
+                          TADDR5         EQU      %54            
+                          TADDR6         EQU      %55            
+                          TADDR7         EQU      %56            
+                          
+                                         ORG      %22000         
+                          
+                          ; TEST CODE - TASK 1
+                          task1          EQU      *              
+22000 11,0000 3  0,0050 1                XCH      TADDR1         
+22001 11,0001 6  1,2032 1                AD       one            
+22002 11,0002 5  0,0050 1                TS       TADDR1         
+                          
+22003 11,0003 3  1,2035 0                CAF      time1          
+22004 11,0004 0  1,2105 1                TC       WL_addTask     
+22005 11,0005     22000 1                DS       task1          
+                          
+22006 11,0006 0  1,2264 0                TC       ENDTASK        
+
+Assembly complete. Errors = 0
+
+Symbol table:
+EXTENDER       005777   BANK0          000057   MAXTASK        000007   
+MAXVAL         037777   MAXDELAY       027340   MAXTIMEOUT     010440   
+TSKTIME        000000   TSKADDR        000001   TRECSZ         000002   
+WL_taskList    000057   WL_IN_saveQ    000075   WL_IN_taskPtr  000076   
+WL_IN_loopCnt  000077   WL_AT_saveQ    000100   WL_AT_taskPtr  000101   
+WL_AT_newTime  000102   WL_AT_timeLeft 000103   WL_AT_loopCnt  000104   
+WL_T3_saveQ    000105   WL_ST_saveQ    000106   WL_ST_taskPtr  000107   
+WL_ST_newTime  000110   WL_ST_loopCnt  000111   WL_RT_saveQ    000112   
+WL_RT_runAddr  000113   WL_RM_saveQ    000114   WL_RM_taskPtr  000115   
+WL_RM_taskPtr2 000116   WL_RM_loopCnt  000117   WL_RM_retval   000120   
+WL_IS_newTime  000121   WL_IS_newAddr  000122   WL_IS_saveQ    000123   
+WL_IS_taskPtr  000124   WL_IS_taskPtr2 000125   WL_IS_loopCnt  000126   
+GOPROG         002000   T3RUPT         002004   ERRUPT         002010   
+DSRUPT         002014   KEYRUPT        002020   UPRUPT         002024   
+ofbit          002030   zero           002031   one            002032   
+bankAddr       002033   lowAddr        002034   time1          002035   
+goMAIN         002036   theend         002046   WL_taskRecSize 002047   
+WL_tskLstStart 002050   WL_tskLstEnd   002051   WL_numTasks    002052   
+WL_numTasks1   002053   WL_maxVal      002054   WL_maxDelay    002055   
+WL_maxTimeOut  002056   WL_initWL      002057   WL_IN_loop     002066   
+WL_addTask     002105   WL_AT_noOvf    002140   WL_AT_chkOrder 002144   
+WL_AT_mkFirst  002162   WL_AT_loop     002165   WL_AT_schTsk   002207   
+WL_AT_done     002217   WL_TIME3task   002224   WL_runTasks    002233   
+WL_RT_loop     002235   WL_RT_runIt    002262   ENDTASK        002264   
+WL_RT_done     002265   WL_schedTask   002270   WL_ST_loop     002307   
+WL_ST_setT3    002332   WL_ST_noTask   002337   WL_ST_done     002341   
+WL_insert      002344   WL_IS_loop     002361   WL_IS_bumpPtr  002412   
+WL_IS_insRec   002423   WL_IS_done     002433   WL_remove      002436   
+WL_RM_loop     002454   WL_RM_done     002507   goT3           002513   
+goER           002515   goDS           002516   goKEY          002517   
+goUP           002520   endRUPT        002521   TADDR1         000050   
+TADDR2         000051   TADDR3         000052   TADDR4         000053   
+TADDR5         000054   TADDR6         000055   TADDR7         000056   
+task1          022000   ARUPT          000026   Q              000001   
+QRUPT          000027   OUT1           000011   TIME3          000037   
+A              000000   BANK           000015   

@@ -1,0 +1,9 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+
+Assembly complete. Errors = 0
+
+Symbol table:

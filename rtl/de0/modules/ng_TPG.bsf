@@ -1,0 +1,127 @@
+/*
+WARNING: Do NOT edit the input and output ports in this file in a text
+editor if you plan to continue editing the block that represents it in
+the Block Editor! File corruption is VERY likely to occur.
+*/
+/*
+Copyright (C) 1991-2011 Altera Corporation
+Your use of Altera Corporation's design tools, logic functions 
+and other software and tools, and its AMPP partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Altera Program License 
+Subscription Agreement, Altera MegaCore Function License 
+Agreement, or other applicable license agreement, including, 
+without limitation, that your use is for the sole purpose of 
+programming logic devices manufactured by Altera and sold by 
+Altera or its authorized distributors.  Please refer to the 
+applicable agreement for further details.
+*/
+(header "symbol" (version "1.1"))
+(symbol
+	(rect 16 16 176 272)
+	(text "ng_TPG" (rect 5 0 47 12)(font "Arial" ))
+	(text "inst" (rect 8 240 36 252)(font "Arial" ))
+	(port
+		(pt 0 32)
+		(input)
+		(text "CLK1" (rect 0 0 28 12)(font "Arial" ))
+		(text "CLK1" (rect 21 27 49 39)(font "Arial" ))
+		(line (pt 0 32)(pt 16 32)(line_width 1))
+	)
+	(port
+		(pt 0 48)
+		(input)
+		(text "CLK0" (rect 0 0 28 12)(font "Arial" ))
+		(text "CLK0" (rect 21 43 49 55)(font "Arial" ))
+		(line (pt 0 48)(pt 16 48)(line_width 1))
+	)
+	(port
+		(pt 0 64)
+		(input)
+		(text "NPURST" (rect 0 0 42 12)(font "Arial" ))
+		(text "NPURST" (rect 21 59 63 71)(font "Arial" ))
+		(line (pt 0 64)(pt 16 64)(line_width 1))
+	)
+	(port
+		(pt 0 80)
+		(input)
+		(text "F17X" (rect 0 0 28 12)(font "Arial" ))
+		(text "F17X" (rect 21 75 49 87)(font "Arial" ))
+		(line (pt 0 80)(pt 16 80)(line_width 1))
+	)
+	(port
+		(pt 0 96)
+		(input)
+		(text "FCLK" (rect 0 0 28 12)(font "Arial" ))
+		(text "FCLK" (rect 21 91 49 103)(font "Arial" ))
+		(line (pt 0 96)(pt 16 96)(line_width 1))
+	)
+	(port
+		(pt 0 112)
+		(input)
+		(text "F13X" (rect 0 0 28 12)(font "Arial" ))
+		(text "F13X" (rect 21 107 49 119)(font "Arial" ))
+		(line (pt 0 112)(pt 16 112)(line_width 1))
+	)
+	(port
+		(pt 0 128)
+		(input)
+		(text "INST" (rect 0 0 28 12)(font "Arial" ))
+		(text "INST" (rect 21 123 49 135)(font "Arial" ))
+		(line (pt 0 128)(pt 16 128)(line_width 1))
+	)
+	(port
+		(pt 0 144)
+		(input)
+		(text "NRUN" (rect 0 0 28 12)(font "Arial" ))
+		(text "NRUN" (rect 21 139 49 151)(font "Arial" ))
+		(line (pt 0 144)(pt 16 144)(line_width 1))
+	)
+	(port
+		(pt 0 160)
+		(input)
+		(text "SNI" (rect 0 0 21 12)(font "Arial" ))
+		(text "SNI" (rect 21 155 42 167)(font "Arial" ))
+		(line (pt 0 160)(pt 16 160)(line_width 1))
+	)
+	(port
+		(pt 0 176)
+		(input)
+		(text "OUT8" (rect 0 0 28 12)(font "Arial" ))
+		(text "OUT8" (rect 21 171 49 183)(font "Arial" ))
+		(line (pt 0 176)(pt 16 176)(line_width 1))
+	)
+	(port
+		(pt 0 192)
+		(input)
+		(text "NSA" (rect 0 0 21 12)(font "Arial" ))
+		(text "NSA" (rect 21 187 42 199)(font "Arial" ))
+		(line (pt 0 192)(pt 16 192)(line_width 1))
+	)
+	(port
+		(pt 0 208)
+		(input)
+		(text "NSTEP" (rect 0 0 35 12)(font "Arial" ))
+		(text "NSTEP" (rect 21 203 56 215)(font "Arial" ))
+		(line (pt 0 208)(pt 16 208)(line_width 1))
+	)
+	(port
+		(pt 160 32)
+		(output)
+		(text "TPG[3..0]" (rect 0 0 63 12)(font "Arial" ))
+		(text "TPG[3..0]" (rect 76 27 139 39)(font "Arial" ))
+		(line (pt 160 32)(pt 144 32)(line_width 3))
+	)
+	(port
+		(pt 160 48)
+		(output)
+		(text "STBY" (rect 0 0 28 12)(font "Arial" ))
+		(text "STBY" (rect 111 43 139 55)(font "Arial" ))
+		(line (pt 160 48)(pt 144 48)(line_width 1))
+	)
+	(drawing
+		(rectangle (rect 16 16 144 240)(line_width 1))
+	)
+)

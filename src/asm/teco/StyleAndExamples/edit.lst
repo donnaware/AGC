@@ -1,0 +1,134 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; AGC test (file:edit.asm)
+                          ; 
+                          ; Test values
+                          ; 
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                                         ORG      %100           
+00100    0100     00000 1 MPindex        DS       %0             
+00101    0101     00000 1 MPXTND         DS       %0             ; indexed extend
+                          
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         
+02000    2000 0  1,2042 0                TC       chkMP          
+                          
+                          ; MP test values
+                          ;                          
+02001    2001     00007 0 MPstart        DS       7              ; loop MPstart+1 times
+                          
+                          ; C(A) test values
+                          mp1            EQU      *              
+02002    2002     37777 1                DS       %37777         ; check #00
+02003    2003     37777 1                DS       %37777         ; check #01
+02004    2004     40000 0                DS       %40000         ; check #02
+02005    2005     40000 0                DS       %40000         ; check #03
+02006    2006     00000 1                DS       %00000         ; check #04
+02007    2007     00000 1                DS       %00000         ; check #05
+02010    2010     77777 0                DS       %77777         ; check #06
+02011    2011     77777 0                DS       %77777         ; check #07
+                          
+                          ; C(K) test values
+                          mp2            EQU      *              
+02012    2012     37777 1                DS       %37777         ; check #00
+02013    2013     40000 0                DS       %40000         ; check #01
+02014    2014     37777 1                DS       %37777         ; check #02
+02015    2015     40000 0                DS       %40000         ; check #03
+02016    2016     00000 1                DS       %00000         ; check #04
+02017    2017     77777 0                DS       %77777         ; check #05
+02020    2020     00000 1                DS       %00000         ; check #06
+02021    2021     77777 0                DS       %77777         ; check #07
+                          
+                          ; A = upper product
+                          MPchkA         EQU      *              
+02022    2022     37776 0                DS       %37776         ; check #00
+02023    2023     40001 1                DS       %40001         ; check #01
+02024    2024     40001 1                DS       %40001         ; check #02
+02025    2025     37776 0                DS       %37776         ; check #03
+02026    2026     00000 1                DS       %00000         ; check #04
+02027    2027     77777 0                DS       %77777         ; check #05
+02030    2030     77777 0                DS       %77777         ; check #06
+02031    2031     00000 1                DS       %00000         ; check #07
+                          
+                          ; LP = lower product
+                          MPchkLP        EQU      *              
+02032    2032     00001 0                DS       %00001         ; check #00
+02033    2033     77776 1                DS       %77776         ; check #01
+02034    2034     77776 1                DS       %77776         ; check #02
+02035    2035     00001 0                DS       %00001         ; check #03
+02036    2036     00000 1                DS       %00000         ; check #04
+02037    2037     77777 0                DS       %77777         ; check #05
+02040    2040     77777 0                DS       %77777         ; check #06
+02041    2041     00000 1                DS       %00000         ; check #07
+                          
+                          
+                          chkMP          EQU      *              
+                          ; Decrementing loop
+                          ;	- always executes at least once (tests at end of loop)		
+                          ;	- loops 'MPstart+1' times; decrements MPindex
+02042    2042 3  1,2001 1                XCH      MPstart        ; initialize loop counter
+                          
+                          ;------------------------------ 
+                          ; MP check starts here
+                          ; uses MPindex to access test values
+                          MPloop         EQU      *              
+02043    2043 5  0,0100 0                TS       MPindex        ; save new index
+                          
+02044    2044 3  2,5777 0                CAF      EXTENDER       
+02045    2045 6  0,0100 0                AD       MPindex        
+02046    2046 5  0,0101 1                TS       MPXTND         
+                          
+02047    2047 2  0,0100 1                INDEX    MPindex        
+02050    2050 3  1,2002 1                CAF      mp1            
+02051    2051 2  0,0101 0                INDEX    MPXTND         ; EXTEND using MPindex
+02052    2052 4  1,2012 1                MP       mp2            
+                          
+                          ; verify C(A)
+02053    2053 4  0,0000 0                COM                     ; get -A
+02054    2054 2  0,0100 1                INDEX    MPindex        
+02055    2055 6  1,2022 0                AD       MPchkA         ; put (-A) + expected value in A
+02056    2056 1  0,0000 0                CCS      A              ; compare
+02057    2057 0  1,2400 1                TC       fail           ; >0 (A < expected value)
+02060    2060 0  1,2400 1                TC       fail           ; +0
+02061    2061 0  1,2400 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; verify C(LP)
+02062    2062 4  0,0003 0                CS       LP             ; get -A
+02063    2063 2  0,0100 1                INDEX    MPindex        
+02064    2064 6  1,2032 1                AD       MPchkLP        ; put (-A) + expected value in A
+02065    2065 1  0,0000 0                CCS      A              ; compare
+02066    2066 0  1,2400 1                TC       fail           ; >0 (A < expected value)
+02067    2067 0  1,2400 1                TC       fail           ; +0
+02070    2070 0  1,2400 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; end of MP check
+                          ;------------------------------ 
+                          
+02071    2071 1  0,0100 1                CCS      MPindex        ; done?
+02072    2072 0  1,2043 1                TC       MPloop         ; not yet, do next check
+                          
+02073    2073 0  1,2300 0                TC       loop1          
+                          ; ----------------------------------------------
+                          
+                                         ORG      %2300          
+                          loop1          EQU      *              
+02300    2300 0  1,2300 0                TC       loop1          
+                          
+                                         ORG      %2400          
+                          fail           EQU      *              
+02400    2400 0  1,2400 1                TC       fail           
+
+Assembly complete. Errors = 0
+
+Symbol table:
+EXTENDER       005777   MPindex        000100   MPXTND         000101   
+GOPROG         002000   MPstart        002001   mp1            002002   
+mp2            002012   MPchkA         002022   MPchkLP        002032   
+chkMP          002042   MPloop         002043   loop1          002300   
+fail           002400   A              000000   LP             000003   

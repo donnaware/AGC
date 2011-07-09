@@ -1,0 +1,324 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6 for EPROM
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO2 (file:teco2.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		9/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests extracode instructions: MP, DV, SU
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          
+                          START          EQU      %00            
+                          
+                          DVtst          EQU      %02            ; DV check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          
+                          ; DV test
+00102    0102     00000 1 DVsavA         DS       %0             
+00103    0103     00000 1 DVindex        DS       %0             
+00104    0104     00000 1 DVXTND         DS       %0             ; indexed extend
+                          
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2030 0                TC       goMAIN         
+                          
+                          ; interrupt service entry points
+                                         ORG      T3RUPT         
+02004    2004 5  0,0026 0                TS       ARUPT          
+02005    2005 3  0,0001 0                XCH      Q              
+02006    2006 5  0,0027 1                TS       QRUPT          
+02007    2007 0  1,2145 0                TC       goT3           
+                          
+                                         ORG      ERRUPT         
+02010    2010 5  0,0026 0                TS       ARUPT          
+02011    2011 3  0,0001 0                XCH      Q              
+02012    2012 5  0,0027 1                TS       QRUPT          
+02013    2013 0  1,2145 0                TC       goER           
+                          
+                                         ORG      DSRUPT         
+02014    2014 5  0,0026 0                TS       ARUPT          
+02015    2015 3  0,0001 0                XCH      Q              
+02016    2016 5  0,0027 1                TS       QRUPT          
+02017    2017 0  1,2145 0                TC       goDS           
+                          
+                                         ORG      KEYRUPT        
+02020    2020 5  0,0026 0                TS       ARUPT          
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0027 1                TS       QRUPT          
+02023    2023 0  1,2145 0                TC       goKEY          
+                          
+                          
+                                         ORG      UPRUPT         
+02024    2024 5  0,0026 0                TS       ARUPT          
+02025    2025 3  0,0001 0                XCH      Q              
+02026    2026 5  0,0027 1                TS       QRUPT          
+02027    2027 0  1,2145 0                TC       goUP           
+                          
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02030    2030 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02031    2031 0  1,2040 1                TCR      begin          
+                          
+                          ; Test extracode instructions.
+02032    2032 0  1,2071 0                TCR      chkDV          
+                          
+                          ; Passed all tests.
+02033    2033 0  1,2142 1                TCR      finish         
+                          
+                          fail           EQU      *              
+02034    2034 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02035    2035 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02036    2036 0  1,2036 0                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02037    2037     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02040    2040 3  1,2037 1                XCH      STRTcode       
+02041    2041 5  0,0100 0                TS       curtest        ; set current test code to START
+02042    2042 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST DV INSTRUCTION SUBROUTINE
+                          ; L:	DV	K
+                          ; Verifies the following:
+                          ; - Set C(A) = b(A) / C(K)
+                          ; - Set C(Q) = - abs(remainder)
+                          ; - Set C(LP) > 0 if quotient is positive
+                          ; - Set C(LP) < 0 if quotient is negative
+                          ; - Take next instruction from L+1
+                          
+02043    2043     00002 0 DVcode         DS       DVtst          ; code for this test
+                          
+                          ; DV test values
+                          ;                          
+02044    2044     00003 1 DVstart        DS       3              ; loop DVstart+1 times
+                          
+                          ; C(A) test values
+                          div1           EQU      *              
+02045    2045     00000 1                DS       %00000         ; check #00 (+0/+0)
+02046    2046     00000 1                DS       %00000         ; check #01 (+0/-0)
+02047    2047     77777 0                DS       %77777         ; check #02 (-0/+0)
+02050    2050     77777 0                DS       %77777         ; check #03 (-0/-0)
+                          
+                          ; C(K) test values
+                          div2           EQU      *              
+02051    2051     00000 1                DS       %00000         ; check #00 (+0/+0)
+02052    2052     77777 0                DS       %77777         ; check #01 (+0/-0)
+02053    2053     00000 1                DS       %00000         ; check #02 (-0/+0)
+02054    2054     77777 0                DS       %77777         ; check #03 (-0/-0)
+                          
+                          ; A = quotient
+                          DVchkA         EQU      *              
+02055    2055     37777 1                DS       %37777         ; check #00 (+0/+0)
+02056    2056     40000 0                DS       %40000         ; check #01 (+0/-0)
+02057    2057     40000 0                DS       %40000         ; check #02 (-0/+0)
+02060    2060     37777 1                DS       %37777         ; check #03 (-0/-0)
+                          
+                          ; Q = remainder
+                          DVchkQ         EQU      *              
+02061    2061     77777 0                DS       %77777         ; check #00 (+0/+0)
+02062    2062     77777 0                DS       %77777         ; check #01 (+0/-0)
+02063    2063     77777 0                DS       %77777         ; check #02 (-0/+0)
+02064    2064     77777 0                DS       %77777         ; check #03 (-0/-0)
+                          
+                          ; LP = sign
+                          DVchkLP        EQU      *              
+02065    2065     00001 0                DS       %00001         ; check #00 (+0/+0)
+02066    2066     40000 0                DS       %40000         ; check #01 (+0/-0)
+02067    2067     40001 1                DS       %40001         ; check #02 (-0/+0)
+02070    2070     00001 0                DS       %00001         ; check #03 (-0/-0)
+                          
+                          chkDV          EQU      *              
+02071    2071 3  0,0001 0                XCH      Q              
+02072    2072 5  0,0101 1                TS       savQ           ; save return address
+                          
+02073    2073 3  1,2043 1                CAF      DVcode         
+02074    2074 5  0,0100 0                TS       curtest        ; set code identifying current test
+                          
+                          
+                          ; Decrementing loop
+                          ;	- always executes at least once (tests at end of loop)		
+                          ;	- loops 'DVstart+1' times; decrements DVindex
+02075    2075 3  1,2044 0                XCH      DVstart        ; initialize loop counter
+                          
+                          ;------------------------------ 
+                          
+                          ; DV check starts here
+                          ; uses DVindex to access test values
+                          DVloop         EQU      *              
+02076    2076 5  0,0103 0                TS       DVindex        ; save new index
+                          
+02077    2077 3  2,5777 0                CAF      EXTENDER       
+02100    2100 6  0,0103 0                AD       DVindex        
+02101    2101 5  0,0104 1                TS       DVXTND         
+                          
+02102    2102 2  0,0103 1                INDEX    DVindex        
+02103    2103 3  1,2045 1                CAF      div1           
+02104    2104 2  0,0104 0                INDEX    DVXTND         ; EXTEND using DVindex
+02105    2105 5  1,2051 1                DV       div2           
+02106    2106 5  0,0102 1                TS       DVsavA         
+                          
+                          ; verify C(Q)
+02107    2107 4  0,0001 1                CS       Q              ; get -A
+02110    2110 2  0,0103 1                INDEX    DVindex        
+02111    2111 6  1,2061 1                AD       DVchkQ         ; put (-A) + expected value in A
+02112    2112 1  0,0000 0                CCS      A              ; compare
+02113    2113 0  1,2034 1                TC       fail           ; >0 (A < expected value)
+02114    2114 0  1,2034 1                TC       fail           ; +0
+02115    2115 0  1,2034 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; verify C(A)
+02116    2116 4  0,0102 0                CS       DVsavA         ; get -A
+02117    2117 2  0,0103 1                INDEX    DVindex        
+02120    2120 6  1,2055 0                AD       DVchkA         ; put (-A) + expected value in A
+02121    2121 1  0,0000 0                CCS      A              ; compare
+02122    2122 0  1,2034 1                TC       fail           ; >0 (A < expected value)
+02123    2123 0  1,2034 1                TC       fail           ; +0
+02124    2124 0  1,2034 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; verify C(LP)
+02125    2125 4  0,0003 0                CS       LP             ; get -A
+02126    2126 2  0,0103 1                INDEX    DVindex        
+02127    2127 6  1,2065 0                AD       DVchkLP        ; put (-A) + expected value in A
+02130    2130 1  0,0000 0                CCS      A              ; compare
+02131    2131 0  1,2034 1                TC       fail           ; >0 (A < expected value)
+02132    2132 0  1,2034 1                TC       fail           ; +0
+02133    2133 0  1,2034 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; end of DV check
+                          ;------------------------------ 
+                          
+02134    2134 1  0,0103 1                CCS      DVindex        ; done?
+02135    2135 0  1,2076 1                TC       DVloop         ; not yet, do next check
+                          
+02136    2136 3  0,0101 1                XCH      savQ           
+02137    2137 5  0,0001 0                TS       Q              ; restore return address
+02140    2140 0  0,0000 0                RETURN                  
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02141    2141     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02142    2142 3  1,2141 1                CAF      PASScode       
+02143    2143 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02144    2144 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; INTERRUPT SERVICE ROUTINE
+                          
+                          goT3           EQU      *              
+                          goER           EQU      *              
+                          goDS           EQU      *              
+                          goKEY          EQU      *              
+                          goUP           EQU      *              
+                          
+                          
+                          endRUPT        EQU      *              
+02145    2145 3  0,0027 1                XCH      QRUPT          ; restore Q
+02146    2146 5  0,0001 0                TS       Q              
+02147    2147 3  0,0026 0                XCH      ARUPT          ; restore A
+02150    2150 2  0,0000 1                RESUME                  ; finished, go back
+                          
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   DVtst          000002   PASS           012345   
+EXTENDER       005777   OVFCNTR        000034   curtest        000100   
+savQ           000101   DVsavA         000102   DVindex        000103   
+DVXTND         000104   GOPROG         002000   T3RUPT         002004   
+ERRUPT         002010   DSRUPT         002014   KEYRUPT        002020   
+UPRUPT         002024   goMAIN         002030   fail           002034   
+end            002036   STRTcode       002037   begin          002040   
+DVcode         002043   DVstart        002044   div1           002045   
+div2           002051   DVchkA         002055   DVchkQ         002061   
+DVchkLP        002065   chkDV          002071   DVloop         002076   
+PASScode       002141   finish         002142   goT3           002145   
+goER           002145   goDS           002145   goKEY          002145   
+goUP           002145   endRUPT        002145   ARUPT          000026   
+Q              000001   QRUPT          000027   A              000000   
+LP             000003   

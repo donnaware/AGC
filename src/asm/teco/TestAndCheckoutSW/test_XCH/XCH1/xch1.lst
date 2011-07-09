@@ -1,0 +1,35 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; XCH1 (file:xch1.asm)
+                          ; test XCH instruction
+                          
+                          
+                                         ORG      100            ; start of data area
+                          val2           EQU      *              ; 100 decimal
+00144    0144     00000 1                DS       0              ; *** stores val1 here ***
+                          
+                                         ORG      GOPROG         
+                          
+                          ; test XCH; assumes that TC works as well.
+                          ; 
+                          
+02000    2000 3  1,2005 0 start          XCH      val1           ; put 12345 in reg A
+02001    2001 3  0,0144 0                XCH      val2           ; store 12345 in loc 100
+02002    2002 3  1,2006 0                XCH      val3           ; put 54321 in reg A
+02003    2003 3  0,0144 0                XCH      val2           ; store 12345 in loc 100
+                          
+02004    2004 0  1,2000 0 end            TC       start          
+                          
+02005    2005     12345 0 val1           DS       %12345         
+02006    2006     54321 0 val3           DS       %54321         
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+val2           000144   GOPROG         002000   start          002000   
+end            002004   val1           002005   val3           002006   

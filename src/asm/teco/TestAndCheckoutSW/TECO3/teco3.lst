@@ -1,0 +1,558 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO3 (file:teco3.asm)
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests editing registers: CYR, SR, CYL, SL.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          START          EQU      %00            
+                          CYRtst         EQU      %01            ; CYR check failed
+                          SRtst          EQU      %02            ; SR check failed
+                          CYLtst         EQU      %03            ; CYL check failed
+                          SLtst          EQU      %04            ; SL check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          ; CYR test values
+00102    0102     00000 1 CYRval         DS       %0             ; current test value
+00103    0103     00000 1 iCYR           DS       %0             ; current index
+                          
+                          ; SR test values
+00104    0104     00000 1 SRval          DS       %0             ; current test value
+00105    0105     00000 1 iSR            DS       %0             ; current index
+                          
+                          ; CYL test values
+00106    0106     00000 1 CYLval         DS       %0             ; current test value
+00107    0107     00000 1 iCYL           DS       %0             ; current index
+                          
+                          ; SL test values
+00110    0110     00000 1 SLval          DS       %0             ; current test value
+00111    0111     00000 1 iSL            DS       %0             ; current index
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2030 0                TC       goMAIN         
+                          
+                          ; interrupt service entry points
+                                         ORG      T3RUPT         
+02004    2004 5  0,0026 0                TS       ARUPT          
+02005    2005 3  0,0001 0                XCH      Q              
+02006    2006 5  0,0027 1                TS       QRUPT          
+02007    2007 0  1,2424 1                TC       goT3           
+                          
+                                         ORG      ERRUPT         
+02010    2010 5  0,0026 0                TS       ARUPT          
+02011    2011 3  0,0001 0                XCH      Q              
+02012    2012 5  0,0027 1                TS       QRUPT          
+02013    2013 0  1,2424 1                TC       goER           
+                          
+                                         ORG      DSRUPT         
+02014    2014 5  0,0026 0                TS       ARUPT          
+02015    2015 3  0,0001 0                XCH      Q              
+02016    2016 5  0,0027 1                TS       QRUPT          
+02017    2017 0  1,2424 1                TC       goDS           
+                          
+                                         ORG      KEYRUPT        
+02020    2020 5  0,0026 0                TS       ARUPT          
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0027 1                TS       QRUPT          
+02023    2023 0  1,2424 1                TC       goKEY          
+                          
+                          
+                                         ORG      UPRUPT         
+02024    2024 5  0,0026 0                TS       ARUPT          
+02025    2025 3  0,0001 0                XCH      Q              
+02026    2026 5  0,0027 1                TS       QRUPT          
+02027    2027 0  1,2424 1                TC       goUP           
+                          
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02030    2030 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02031    2031 0  1,2043 1                TCR      begin          
+                          
+                          ; Test extracode instructions.
+02032    2032 0  1,2070 1                TCR      chkCYR         
+02033    2033 0  1,2162 0                TCR      chkSR          
+02034    2034 0  1,2255 1                TCR      chkCYL         
+02035    2035 0  1,2347 0                TCR      chkSL          
+                          
+                          ; Passed all tests.
+02036    2036 0  1,2421 1                TCR      finish         
+                          
+                          fail           EQU      *              
+02037    2037 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02040    2040 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02041    2041 0  1,2041 0                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02042    2042     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02043    2043 3  1,2042 0                XCH      STRTcode       
+02044    2044 5  0,0100 0                TS       curtest        ; set current test code to START
+02045    2045 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CYR EDITING FUNCTION SUBROUTINE
+                          ; Rotate a test value right through CYR 15 times.
+                          ; Test the value against an expected value for each time.
+                          ; After 15 rotations, the value should equal the initial
+                          ; value.
+                          
+02046    2046     00001 0 CYRcode        DS       CYRtst         ; code for this test
+                          
+                          ; CYR test values
+02047    2047     03431 1 CYRinit        DS       %03431         ; init test value
+02050    2050     00016 0 CYRindx        DS       14             ; loop CYRindx+1 times
+                          
+                          ; check CYR against these values
+                          CYRbase        EQU      *              
+02051    2051     03431 1                DS       %03431         ; check #0 (back to start)
+02052    2052     07062 1                DS       %07062         ; check #1
+02053    2053     16144 1                DS       %16144         ; check #2
+02054    2054     34310 1                DS       %34310         ; check #3
+02055    2055     70620 1                DS       %70620         ; check #4
+02056    2056     61441 1                DS       %61441         ; check #5
+02057    2057     43103 1                DS       %43103         ; check #6
+02060    2060     06207 1                DS       %06207         ; check #7
+02061    2061     14416 1                DS       %14416         ; check #8
+02062    2062     31034 1                DS       %31034         ; check #9
+02063    2063     62070 1                DS       %62070         ; check #10
+02064    2064     44161 1                DS       %44161         ; check #11
+02065    2065     10343 1                DS       %10343         ; check #12
+02066    2066     20706 1                DS       %20706         ; check #13
+02067    2067     41614 1                DS       %41614         ; check #14
+                          
+                          chkCYR         EQU      *              
+02070    2070 3  0,0001 0                XCH      Q              
+02071    2071 5  0,0101 1                TS       savQ           ; save return address
+                          
+02072    2072 3  1,2046 1                CAF      CYRcode        
+02073    2073 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+02074    2074 3  1,2047 0                XCH      CYRinit        ; init value to rotate
+02075    2075 5  0,0102 1                TS       CYRval         
+                          
+02076    2076 3  1,2050 0                XCH      CYRindx        ; load init index
+                          
+                          CYRloop        EQU      *              
+02077    2077 5  0,0103 0                TS       iCYR           ; save index
+                          
+                          ; rotate A right (CYR)
+02100    2100 3  0,0102 1                XCH      CYRval         
+02101    2101 5  0,0020 0                TS       CYR            ; rotate
+02102    2102 3  0,0020 0                XCH      CYR            ; put result in A
+02103    2103 5  0,0102 1                TS       CYRval         
+                          
+                          ; verify C(A)
+02104    2104 4  0,0000 0                COM                     ; get -A
+02105    2105 2  0,0103 1                INDEX    iCYR           
+02106    2106 6  1,2051 1                AD       CYRbase        ; put (-A) + expected value in A
+02107    2107 1  0,0000 0                CCS      A              ; compare
+02110    2110 0  1,2037 1                TC       fail           ; >0 (A < expected value)
+02111    2111 0  1,2037 1                TC       fail           ; +0
+02112    2112 0  1,2037 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02113    2113 1  0,0103 1                CCS      iCYR           ; done?
+02114    2114 0  1,2077 0                TC       CYRloop        ; not yet, do next check
+                          
+02115    2115 3  0,0101 1                XCH      savQ           
+02116    2116 5  0,0001 0                TS       Q              ; restore return address
+02117    2117 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST SR EDITING FUNCTION SUBROUTINE
+                          ; Shift a test value right through SR 15 times.
+                          ; Test the value against an expected value for each time.
+                          ; After 15 shifts, the value should equal the sign (SG).
+                          
+02120    2120     00002 0 SRcode         DS       SRtst          ; code for this test
+                          
+                          ; SR test values
+02121    2121     03431 1 SRinitP        DS       %03431         ; positive init test value
+02122    2122     44346 0 SRinitN        DS       %44346         ; negative init test value
+02123    2123     00016 0 SRindx         DS       14             ; loop SRindx+1 times
+                          
+                          ; check SR against these values (positive)
+                          SRbaseP        EQU      *              
+02124    2124     00000 1                DS       %00000         ; check #0 (back to start)
+02125    2125     00000 1                DS       %00000         ; check #1
+02126    2126     00000 1                DS       %00000         ; check #2
+02127    2127     00000 1                DS       %00000         ; check #3
+02130    2130     00000 1                DS       %00000         ; check #4
+02131    2131     00001 0                DS       %00001         ; check #5
+02132    2132     00003 1                DS       %00003         ; check #6
+02133    2133     00007 0                DS       %00007         ; check #7
+02134    2134     00016 0                DS       %00016         ; check #8
+02135    2135     00034 0                DS       %00034         ; check #9
+02136    2136     00070 0                DS       %00070         ; check #10
+02137    2137     00161 1                DS       %00161         ; check #11
+02140    2140     00343 0                DS       %00343         ; check #12
+02141    2141     00706 0                DS       %00706         ; check #13
+02142    2142     01614 0                DS       %01614         ; check #14
+                          
+                          ; check SR against these values (negative)
+                          SRbaseN        EQU      *              
+02143    2143     77777 0                DS       %77777         ; check #0 (back to start)
+02144    2144     77777 0                DS       %77777         ; check #1
+02145    2145     77776 1                DS       %77776         ; check #2
+02146    2146     77774 0                DS       %77774         ; check #3
+02147    2147     77771 0                DS       %77771         ; check #4
+02150    2150     77762 1                DS       %77762         ; check #5
+02151    2151     77744 0                DS       %77744         ; check #6
+02152    2152     77710 1                DS       %77710         ; check #7
+02153    2153     77621 1                DS       %77621         ; check #8
+02154    2154     77443 1                DS       %77443         ; check #9
+02155    2155     77107 1                DS       %77107         ; check #10
+02156    2156     76216 0                DS       %76216         ; check #11
+02157    2157     74434 1                DS       %74434         ; check #12
+02160    2160     71071 1                DS       %71071         ; check #13
+02161    2161     62163 1                DS       %62163         ; check #14
+                          
+                          chkSR          EQU      *              
+02162    2162 3  0,0001 0                XCH      Q              
+02163    2163 5  0,0101 1                TS       savQ           ; save return address
+                          
+02164    2164 3  1,2120 0                CAF      SRcode         
+02165    2165 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; TEST 1: shift a postive value.
+02166    2166 3  1,2121 1                XCH      SRinitP        ; init value to shift
+02167    2167 5  0,0104 1                TS       SRval          
+                          
+02170    2170 3  1,2123 0                XCH      SRindx         ; load init index
+                          
+                          
+                          SRloopP        EQU      *              
+02171    2171 5  0,0105 0                TS       iSR            ; save index
+                          
+                          ; shift A right (SR)
+02172    2172 3  0,0104 1                XCH      SRval          
+02173    2173 5  0,0021 1                TS       SR             ; shift
+02174    2174 3  0,0021 1                XCH      SR             ; put result in A
+02175    2175 5  0,0104 1                TS       SRval          
+                          
+                          ; verify C(A)
+02176    2176 4  0,0000 0                COM                     ; get -A
+02177    2177 2  0,0105 1                INDEX    iSR            
+02200    2200 6  1,2124 1                AD       SRbaseP        ; put (-A) + expected value in A
+02201    2201 1  0,0000 0                CCS      A              ; compare
+02202    2202 0  1,2037 1                TC       fail           ; >0 (A < expected value)
+02203    2203 0  1,2037 1                TC       fail           ; +0
+02204    2204 0  1,2037 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02205    2205 1  0,0105 1                CCS      iSR            ; done?
+02206    2206 0  1,2171 1                TC       SRloopP        ; not yet, do next check
+                          
+                          ; TEST 2: shift a negative value
+02207    2207 3  1,2122 1                XCH      SRinitN        ; init value to shift
+02210    2210 5  0,0104 1                TS       SRval          
+                          
+02211    2211 3  1,2123 0                XCH      SRindx         ; load init index
+                          
+                          
+                          SRloopN        EQU      *              
+02212    2212 5  0,0105 0                TS       iSR            ; save index
+                          
+                          ; shift A left (SR)
+02213    2213 3  0,0104 1                XCH      SRval          
+02214    2214 5  0,0021 1                TS       SR             ; shift
+02215    2215 3  0,0021 1                XCH      SR             ; put result in A
+02216    2216 5  0,0104 1                TS       SRval          
+                          
+                          ; verify C(A)
+02217    2217 4  0,0000 0                COM                     ; get -A
+02220    2220 2  0,0105 1                INDEX    iSR            
+02221    2221 6  1,2143 0                AD       SRbaseN        ; put (-A) + expected value in A
+02222    2222 1  0,0000 0                CCS      A              ; compare
+02223    2223 0  1,2037 1                TC       fail           ; >0 (A < expected value)
+02224    2224 0  1,2037 1                TC       fail           ; +0
+02225    2225 0  1,2037 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02226    2226 1  0,0105 1                CCS      iSR            ; done?
+02227    2227 0  1,2212 1                TC       SRloopN        ; not yet, do next check
+                          
+02230    2230 3  0,0101 1                XCH      savQ           
+02231    2231 5  0,0001 0                TS       Q              ; restore return address
+02232    2232 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CYL EDITING FUNCTION SUBROUTINE
+                          ; Rotate a test value left through CYL 15 times.
+                          ; Test the value against an expected value for each time.
+                          ; After 15 rotations, the value should equal the initial
+                          ; value.
+                          
+02233    2233     00003 1 CYLcode        DS       CYLtst         ; code for this test
+                          
+                          ; CYL test values
+02234    2234     03431 1 CYLinit        DS       %03431         ; init test value
+02235    2235     00016 0 CYLindx        DS       14             ; loop CYLindx+1 times
+                          
+                          ; check CYL against these values
+                          CYLbase        EQU      *              
+02236    2236     03431 1                DS       %03431         ; check #0 (back to start)
+02237    2237     41614 1                DS       %41614         ; check #1
+02240    2240     20706 1                DS       %20706         ; check #2
+02241    2241     10343 1                DS       %10343         ; check #3
+02242    2242     44161 1                DS       %44161         ; check #4
+02243    2243     62070 1                DS       %62070         ; check #5
+02244    2244     31034 1                DS       %31034         ; check #6
+02245    2245     14416 1                DS       %14416         ; check #7
+02246    2246     06207 1                DS       %06207         ; check #8
+02247    2247     43103 1                DS       %43103         ; check #9
+02250    2250     61441 1                DS       %61441         ; check #10
+02251    2251     70620 1                DS       %70620         ; check #11
+02252    2252     34310 1                DS       %34310         ; check #12
+02253    2253     16144 1                DS       %16144         ; check #13
+02254    2254     07062 1                DS       %07062         ; check #14
+                          
+                          chkCYL         EQU      *              
+02255    2255 3  0,0001 0                XCH      Q              
+02256    2256 5  0,0101 1                TS       savQ           ; save return address
+                          
+02257    2257 3  1,2233 1                CAF      CYLcode        
+02260    2260 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+02261    2261 3  1,2234 0                XCH      CYLinit        ; init value to rotate
+02262    2262 5  0,0106 0                TS       CYLval         
+                          
+02263    2263 3  1,2235 1                XCH      CYLindx        ; load init index
+                          
+                          CYLloop        EQU      *              
+02264    2264 5  0,0107 1                TS       iCYL           ; save index
+                          
+                          ; rotate A left (CYL)
+02265    2265 3  0,0106 0                XCH      CYLval         
+02266    2266 5  0,0022 1                TS       CYL            ; rotate
+02267    2267 3  0,0022 1                XCH      CYL            ; put result in A
+02270    2270 5  0,0106 0                TS       CYLval         
+                          
+                          ; verify C(A)
+02271    2271 4  0,0000 0                COM                     ; get -A
+02272    2272 2  0,0107 0                INDEX    iCYL           
+02273    2273 6  1,2236 1                AD       CYLbase        ; put (-A) + expected value in A
+02274    2274 1  0,0000 0                CCS      A              ; compare
+02275    2275 0  1,2037 1                TC       fail           ; >0 (A < expected value)
+02276    2276 0  1,2037 1                TC       fail           ; +0
+02277    2277 0  1,2037 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02300    2300 1  0,0107 0                CCS      iCYL           ; done?
+02301    2301 0  1,2264 0                TC       CYLloop        ; not yet, do next check
+                          
+02302    2302 3  0,0101 1                XCH      savQ           
+02303    2303 5  0,0001 0                TS       Q              ; restore return address
+02304    2304 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST SL EDITING FUNCTION SUBROUTINE
+                          ; Shift a test value left through SL 15 times.
+                          ; Test the value against an expected value for each time.
+                          ; After 15 shifts, the value should equal the sign (SG).
+                          
+02305    2305     00004 0 SLcode         DS       SLtst          ; code for this test
+                          
+                          ; SL test values
+02306    2306     03431 1 SLinitP        DS       %03431         ; positive init test value
+02307    2307     44346 0 SLinitN        DS       %44346         ; negative init test value
+02310    2310     00016 0 SLindx         DS       14             ; loop SLindx+1 times
+                          
+                          ; check SL against these values (positive)
+                          SLbaseP        EQU      *              
+02311    2311     00000 1                DS       %00000         ; check #0 (back to start)
+02312    2312     00000 1                DS       %00000         ; check #1
+02313    2313     20000 0                DS       %20000         ; check #2
+02314    2314     10000 0                DS       %10000         ; check #3
+02315    2315     04000 0                DS       %04000         ; check #4
+02316    2316     22000 1                DS       %22000         ; check #5
+02317    2317     31000 0                DS       %31000         ; check #6
+02320    2320     14400 0                DS       %14400         ; check #7
+02321    2321     06200 0                DS       %06200         ; check #8
+02322    2322     03100 0                DS       %03100         ; check #9
+02323    2323     21440 1                DS       %21440         ; check #10
+02324    2324     30620 0                DS       %30620         ; check #11
+02325    2325     34310 1                DS       %34310         ; check #12
+02326    2326     16144 1                DS       %16144         ; check #13
+02327    2327     07062 1                DS       %07062         ; check #14
+                          
+                          ; check SL against these values (negative)
+                          SLbaseN        EQU      *              
+02330    2330     77777 0                DS       %77777         ; check #0 (back to start)
+02331    2331     77777 0                DS       %77777         ; check #1
+02332    2332     57777 1                DS       %57777         ; check #2
+02333    2333     67777 1                DS       %67777         ; check #3
+02334    2334     73777 1                DS       %73777         ; check #4
+02335    2335     55777 0                DS       %55777         ; check #5
+02336    2336     46777 1                DS       %46777         ; check #6
+02337    2337     63377 1                DS       %63377         ; check #7
+02340    2340     71577 1                DS       %71577         ; check #8
+02341    2341     74677 1                DS       %74677         ; check #9
+02342    2342     56337 0                DS       %56337         ; check #10
+02343    2343     47157 1                DS       %47157         ; check #11
+02344    2344     43467 0                DS       %43467         ; check #12
+02345    2345     61633 0                DS       %61633         ; check #13
+02346    2346     50715 1                DS       %50715         ; check #14
+                          
+                          chkSL          EQU      *              
+02347    2347 3  0,0001 0                XCH      Q              
+02350    2350 5  0,0101 1                TS       savQ           ; save return address
+                          
+02351    2351 3  1,2305 0                CAF      SLcode         
+02352    2352 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; TEST 1: shift a postive value.
+02353    2353 3  1,2306 0                XCH      SLinitP        ; init value to shift
+02354    2354 5  0,0110 1                TS       SLval          
+                          
+02355    2355 3  1,2310 1                XCH      SLindx         ; load init index
+                          
+                          
+                          SLloopP        EQU      *              
+02356    2356 5  0,0111 0                TS       iSL            ; save index
+                          
+                          ; shift A left (SL)
+02357    2357 3  0,0110 1                XCH      SLval          
+02360    2360 5  0,0023 0                TS       SL             ; shift
+02361    2361 3  0,0023 0                XCH      SL             ; put result in A
+02362    2362 5  0,0110 1                TS       SLval          
+                          
+                          ; verify C(A)
+02363    2363 4  0,0000 0                COM                     ; get -A
+02364    2364 2  0,0111 1                INDEX    iSL            
+02365    2365 6  1,2311 0                AD       SLbaseP        ; put (-A) + expected value in A
+02366    2366 1  0,0000 0                CCS      A              ; compare
+02367    2367 0  1,2037 1                TC       fail           ; >0 (A < expected value)
+02370    2370 0  1,2037 1                TC       fail           ; +0
+02371    2371 0  1,2037 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02372    2372 1  0,0111 1                CCS      iSL            ; done?
+02373    2373 0  1,2356 0                TC       SLloopP        ; not yet, do next check
+                          
+                          ; TEST 2: shift a negative value
+02374    2374 3  1,2307 1                XCH      SLinitN        ; init value to shift
+02375    2375 5  0,0110 1                TS       SLval          
+                          
+02376    2376 3  1,2310 1                XCH      SLindx         ; load init index
+                          
+                          SLloopN        EQU      *              
+02377    2377 5  0,0111 0                TS       iSL            ; save index
+                          
+                          ; shift A left (SL)
+02400    2400 3  0,0110 1                XCH      SLval          
+02401    2401 5  0,0023 0                TS       SL             ; shift
+02402    2402 3  0,0023 0                XCH      SL             ; put result in A
+02403    2403 5  0,0110 1                TS       SLval          
+                          
+                          ; verify C(A)
+02404    2404 4  0,0000 0                COM                     ; get -A
+02405    2405 2  0,0111 1                INDEX    iSL            
+02406    2406 6  1,2330 0                AD       SLbaseN        ; put (-A) + expected value in A
+02407    2407 1  0,0000 0                CCS      A              ; compare
+02410    2410 0  1,2037 1                TC       fail           ; >0 (A < expected value)
+02411    2411 0  1,2037 1                TC       fail           ; +0
+02412    2412 0  1,2037 1                TC       fail           ; <0 (A > expected value)
+                          
+                          ; loop back to test next value
+02413    2413 1  0,0111 1                CCS      iSL            ; done?
+02414    2414 0  1,2377 0                TC       SLloopN        ; not yet, do next check
+                          
+02415    2415 3  0,0101 1                XCH      savQ           
+02416    2416 5  0,0001 0                TS       Q              ; restore return address
+02417    2417 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02420    2420     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02421    2421 3  1,2420 0                CAF      PASScode       
+02422    2422 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02423    2423 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; INTERRUPT SERVICE ROUTINE
+                          
+                          goT3           EQU      *              
+                          goER           EQU      *              
+                          goDS           EQU      *              
+                          goKEY          EQU      *              
+                          goUP           EQU      *              
+                          
+                          
+                          endRUPT        EQU      *              
+02424    2424 3  0,0027 1                XCH      QRUPT          ; restore Q
+02425    2425 5  0,0001 0                TS       Q              
+02426    2426 3  0,0026 0                XCH      ARUPT          ; restore A
+02427    2427 2  0,0000 1                RESUME                  ; finished, go back
+                          
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   CYRtst         000001   SRtst          000002   
+CYLtst         000003   SLtst          000004   PASS           012345   
+EXTENDER       005777   curtest        000100   savQ           000101   
+CYRval         000102   iCYR           000103   SRval          000104   
+iSR            000105   CYLval         000106   iCYL           000107   
+SLval          000110   iSL            000111   GOPROG         002000   
+T3RUPT         002004   ERRUPT         002010   DSRUPT         002014   
+KEYRUPT        002020   UPRUPT         002024   goMAIN         002030   
+fail           002037   end            002041   STRTcode       002042   
+begin          002043   CYRcode        002046   CYRinit        002047   
+CYRindx        002050   CYRbase        002051   chkCYR         002070   
+CYRloop        002077   SRcode         002120   SRinitP        002121   
+SRinitN        002122   SRindx         002123   SRbaseP        002124   
+SRbaseN        002143   chkSR          002162   SRloopP        002171   
+SRloopN        002212   CYLcode        002233   CYLinit        002234   
+CYLindx        002235   CYLbase        002236   chkCYL         002255   
+CYLloop        002264   SLcode         002305   SLinitP        002306   
+SLinitN        002307   SLindx         002310   SLbaseP        002311   
+SLbaseN        002330   chkSL          002347   SLloopP        002356   
+SLloopN        002377   PASScode       002420   finish         002421   
+goT3           002424   goER           002424   goDS           002424   
+goKEY          002424   goUP           002424   endRUPT        002424   
+ARUPT          000026   Q              000001   QRUPT          000027   
+CYR            000020   A              000000   SR             000021   
+CYL            000022   SL             000023   

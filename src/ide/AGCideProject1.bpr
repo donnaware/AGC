@@ -1,0 +1,166 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.06.00"/>
+    <PROJECT value="AGCideProject1.exe"/>
+    <OBJFILES value="AGCideProject1.obj AGCSimUnit1.obj ADR.obj ALU.obj BUS.obj CLK.obj CPM.obj 
+      CRG.obj CTR.obj DSP.obj INP.obj INT.obj ISD.obj KBD.obj MBF.obj MEM.obj 
+      MON.obj OUT.obj PAR.obj reg.obj SCL.obj SEQ.obj TPG.obj MonitorUnit1.obj 
+      PromptUnit1.obj ShowSourceUnit1.obj About.obj TabStopsUnit1.obj asm.obj"/>
+    <RESFILES value="AGCideProject1.res"/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) AGCSimUnit1.dfm MonitorUnit1.dfm PromptUnit1.dfm 
+      ShowSourceUnit1.dfm About.dfm TabStopsUnit1.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value="vclx.lib rtl.lib vcl.lib"/>
+    <SPARELIBS value="vcl.lib rtl.lib vclx.lib"/>
+    <PACKAGES value="vcl.bpi rtl.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="ilink32"/>
+    <USERDEFINES value="_DEBUG"/>
+    <SYSDEFINES value="NO_STRICT"/>
+    <MAINSOURCE value="AGCideProject1.cpp"/>
+    <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <WARNINGS value="-w-par"/>
+    <OTHERFILES value=""/>
+  </MACROS>
+  <OPTIONS>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -c 
+      -tW -tWM"/>
+    <PFLAGS value="-$YD -$W -$O- -$A8 -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zd"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn -v"/>
+    <OTHERFILES value=""/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0w32.obj sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mt.lib"/>
+    <OTHERFILES value=""/>
+  </LINKER>
+  <FILELIST>
+      <FILE FILENAME="AGCideProject1.res" FORMNAME="" UNITNAME="AGCideProject1.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="AGCideProject1.cpp" FORMNAME="" UNITNAME="AGCideProject1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="AGCSimUnit1.cpp" FORMNAME="Form1" UNITNAME="AGCSimUnit1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ADR.cpp" FORMNAME="" UNITNAME="ADR.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ALU.cpp" FORMNAME="" UNITNAME="ALU.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="BUS.cpp" FORMNAME="" UNITNAME="BUS.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="CLK.cpp" FORMNAME="" UNITNAME="CLK.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="CPM.cpp" FORMNAME="" UNITNAME="CPM.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="CRG.cpp" FORMNAME="" UNITNAME="CRG.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="CTR.cpp" FORMNAME="" UNITNAME="CTR.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="DSP.cpp" FORMNAME="" UNITNAME="DSP.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="INP.cpp" FORMNAME="" UNITNAME="INP.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="INT.cpp" FORMNAME="" UNITNAME="INT.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ISD.cpp" FORMNAME="" UNITNAME="ISD.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="KBD.cpp" FORMNAME="" UNITNAME="KBD.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="MBF.cpp" FORMNAME="" UNITNAME="MBF.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="MEM.cpp" FORMNAME="" UNITNAME="MEM.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="MON.cpp" FORMNAME="" UNITNAME="MON.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="OUT.cpp" FORMNAME="" UNITNAME="OUT.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PAR.cpp" FORMNAME="" UNITNAME="PAR.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="reg.cpp" FORMNAME="" UNITNAME="reg.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="SCL.cpp" FORMNAME="" UNITNAME="SCL.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="SEQ.cpp" FORMNAME="" UNITNAME="SEQ.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="TPG.cpp" FORMNAME="" UNITNAME="TPG.cpp" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="MonitorUnit1.cpp" FORMNAME="MonitorForm1" UNITNAME="MonitorUnit1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PromptUnit1.cpp" FORMNAME="PromptForm1" UNITNAME="PromptUnit1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ShowSourceUnit1.cpp" FORMNAME="SourceCodeForm1" UNITNAME="ShowSourceUnit1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="About.cpp" FORMNAME="AboutBox" UNITNAME="About" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="TabStopsUnit1.cpp" FORMNAME="TabStopsForm1" UNITNAME="TabStopsUnit1" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="asm.cpp" FORMNAME="" UNITNAME="asm" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+  </FILELIST>
+  <BUILDTOOLS>
+  </BUILDTOOLS>
+
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=0
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1033
+CodePage=1252
+
+[Version Info Keys]
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+
+[Excluded Packages]
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\tmsc6.bpl=TMS Component Pack
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\tmsdec6.bpl=TMS Component Pack design time support
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\tmsxlsc6.bpl=TAdvStringGrid Excel support
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\vcwb6.bpl=TMS Instrumentation Workshop
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\YMP3Comp.bpl=Yittle Mp3 Player
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\ClockComp.bpl=Analog Clock
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\vacommb6.bpl=TMS Async32
+C:\Program Files (x86)\Borland\CBuilder6\Bin\dclbde60.bpl=Borland BDE DB Components
+C:\Program Files (x86)\Borland\CBuilder6\Bin\dcltee60.bpl=TeeChart Components
+c:\program files (x86)\borland\cbuilder6\Bin\DBWEBXPRT.BPL=Borland Web Wizard Package
+c:\program files (x86)\borland\cbuilder6\Bin\dcltqr60.bpl=TeeChart for QuickReport Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclite60.bpl=Borland Integrated Translation Environment
+c:\program files (x86)\borland\cbuilder6\Projects\Bpl\vsfb6.bpl=TMS Skin Factory
+
+[HistoryLists\hlIncludePath]
+Count=2
+Item0=$(BCB)\include;$(BCB)\include\vcl
+Item1=..\..\TMS Software\TMS Instrumentation Workshop;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\DevProjects\Apollo\agc sim gui;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=3
+Item0=$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item1=$(BCB)\Projects\Lib;..\..\TMS Software\TMS Instrumentation Workshop;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\DevProjects\Apollo\agc sim gui;$(BCB)\lib\obj;$(BCB)\lib
+Item2=$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=1
+Item0=_DEBUG
+
+[Debugging]
+DebugSourceDirs=$(BCB)\source\vcl
+
+[Parameters]
+RunParams=
+Launcher=
+UseLauncher=0
+DebugCWD=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteLauncher=
+RemoteCWD=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=0
+LinkCGLIB=0
+  </IDEOPTIONS>
+</PROJECT>

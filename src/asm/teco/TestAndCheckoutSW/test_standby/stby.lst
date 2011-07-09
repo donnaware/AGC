@@ -1,0 +1,39 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO_STBY (file:stby.asm)
+                          ; 
+                          ; Tests the standby operation.
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2002 1                TC       goMAIN         
+                          
+02001    2001     00200 0 ofbit          DS       %200           ; OUT1, bit 8 initiates standby
+                          
+                          
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+                          
+                          ; standby is disabled
+02002    2002 3  0,0000 1                NOOP                    
+02003    2003 3  0,0000 1                NOOP                    
+                          
+                          ; enable standby
+02004    2004 3  1,2001 1                XCH      ofbit          
+02005    2005 5  0,0011 1                TS       OUT1           
+                          
+                          infLoop        EQU      *              
+02006    2006 0  1,2006 0                TC       infLoop        
+                          
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+GOPROG         002000   ofbit          002001   goMAIN         002002   
+infLoop        002006   OUT1           000011   

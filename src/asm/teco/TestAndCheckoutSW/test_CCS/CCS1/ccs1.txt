@@ -1,0 +1,190 @@
+Procedure to run:
+	Start AGC simulator
+	Load 'xch1'
+	Simulator command: 'p'
+	Simulator command: 's' (step; used to cirumvent the scaler delays)
+	Simulator command: F1 (steps to PWRON)
+	Simulator command: F1 (steps to TP1)
+	Simulator command: 'r' (run; now we're past the scaler delays)
+	Simulator command: F1 (and so forth...)
+
+To capture the output:
+	Cursor to the blue title bar at the top of the simulator window.
+	Right mouse button: 'Edit' select 'Mark'
+	Click cursor on upper right edge of area to capture.
+	Left mouse button; Drag cursor to lower right edge.
+	Cursor to blue title bar; right mouse button; 'copy'
+	Paste copied text into notepad.
+
+
+After CCS has executed; initial value for CCS K = 00002 (>0)
+
+> AGC4 SIMULATOR 1.14 -------------------------------
+ TP: TP1    F17:0   F13:0   F10:0   SCL:000076
+    STA:0   STB:0   BR1:0   BR2:0   SNI:1   CI:1   LOOPCTR:0
+ RPCELL:00000  INH1:0  INH:1  UpCELL:000  DnCELL:000  SQ:00  TC      TC0
+     CP:RB WY WS CI CLISQ
+      S:  2002   G:002006   P:002006   (r)RUN :1  (p)PURST:0 (F2,F4)FCLK:0
+    RBU:002006 WBU:002006  P2:1        (s)STEP:0
+      B:002006           CADR:002002   (n)INST:1      PALM:[ ]
+      X:000000   Y:177775   U:177776   (a)SA  :0
+
+00    A:000001   15   BANK:00       36  TIME1:000000   53   OPT Y:000000
+01    Q:000000   16 RELINT:         37  TIME3:000000   54  TRKR X:000000
+02    Z:002003   17 INHINT:         40  TIME4:000000   55  TRKR Y:000000
+03   LP:000000   20    CYR:000000   41 UPLINK:000000   56  TRKR Z:000000
+04  IN0:000000   21     SR:000000   42 OUTCR1:000000
+05  IN1:000000   22    CYL:000000   43 OUTCR2:000000    CF:[  ]:KR  [ ]:PA
+06  IN2:000000   23     SL:000000   44 PIPA X:000000
+07  IN3:000000   24  ZRUPT:000000   45 PIPA Y:000000     A:[  ] M:[  ]
+10 OUT0:         25  BRUPT:000000   46 PIPA Z:000000     V:[  ] N:[  ]
+11 OUT1:000000   26  ARUPT:000000   47  CDU X:000000    R1:[         ]
+12 OUT2:000000   27  QRUPT:000000   50  CDU Y:000000    R2:[         ]
+13 OUT3:000000   34  OVCTR:000000   51  CDU Z:000000    R3:[         ]
+14 OUT4:000000   35  TIME2:000000   52  OPT X:000000
+
+
+
+After CCS has executed; initial value for CCS K = 00001 (>0)
+
+> AGC4 SIMULATOR 1.14 -------------------------------
+ TP: TP1    F17:0   F13:0   F10:0   SCL:000076
+    STA:0   STB:0   BR1:0   BR2:0   SNI:1   CI:1   LOOPCTR:0
+ RPCELL:00000  INH1:0  INH:1  UpCELL:000  DnCELL:000  SQ:00  TC      TC0
+     CP:RB WY WS CI CLISQ
+      S:  2002   G:002006   P:002006   (r)RUN :1  (p)PURST:0 (F2,F4)FCLK:0
+    RBU:002006 WBU:002006  P2:1        (s)STEP:0
+      B:002006           CADR:002002   (n)INST:1      PALM:[ ]
+      X:000000   Y:177776   U:177777   (a)SA  :0
+
+00    A:000000   15   BANK:00       36  TIME1:000000   53   OPT Y:000000
+01    Q:000000   16 RELINT:         37  TIME3:000000   54  TRKR X:000000
+02    Z:002003   17 INHINT:         40  TIME4:000000   55  TRKR Y:000000
+03   LP:000000   20    CYR:000000   41 UPLINK:000000   56  TRKR Z:000000
+04  IN0:000000   21     SR:000000   42 OUTCR1:000000
+05  IN1:000000   22    CYL:000000   43 OUTCR2:000000    CF:[  ]:KR  [ ]:PA
+06  IN2:000000   23     SL:000000   44 PIPA X:000000
+07  IN3:000000   24  ZRUPT:000000   45 PIPA Y:000000     A:[  ] M:[  ]
+10 OUT0:         25  BRUPT:000000   46 PIPA Z:000000     V:[  ] N:[  ]
+11 OUT1:000000   26  ARUPT:000000   47  CDU X:000000    R1:[         ]
+12 OUT2:000000   27  QRUPT:000000   50  CDU Y:000000    R2:[         ]
+13 OUT3:000000   34  OVCTR:000000   51  CDU Z:000000    R3:[         ]
+14 OUT4:000000   35  TIME2:000000   52  OPT X:000000
+
+
+
+After CCS has executed; initial value for CCS K = 00000 (+0)
+
+> AGC4 SIMULATOR 1.14 -------------------------------
+ TP: TP1    F17:0   F13:0   F10:0   SCL:000076
+    STA:0   STB:0   BR1:0   BR2:1   SNI:1   CI:1   LOOPCTR:0
+ RPCELL:00000  INH1:0  INH:1  UpCELL:000  DnCELL:000  SQ:00  TC      TC0
+     CP:RB WY WS CI CLISQ
+      S:  2003   G:042007   P:102007   (r)RUN :1  (p)PURST:0 (F2,F4)FCLK:0
+    RBU:002007 WBU:002007  P2:1        (s)STEP:0
+      B:002007           CADR:002003   (n)INST:1      PALM:[ ]
+      X:000000   Y:177776   U:177777   (a)SA  :0
+
+00    A:000000   15   BANK:00       36  TIME1:000000   53   OPT Y:000000
+01    Q:000000   16 RELINT:         37  TIME3:000000   54  TRKR X:000000
+02    Z:002004   17 INHINT:         40  TIME4:000000   55  TRKR Y:000000
+03   LP:000000   20    CYR:000000   41 UPLINK:000000   56  TRKR Z:000000
+04  IN0:000000   21     SR:000000   42 OUTCR1:000000
+05  IN1:000000   22    CYL:000000   43 OUTCR2:000000    CF:[  ]:KR  [ ]:PA
+06  IN2:000000   23     SL:000000   44 PIPA X:000000
+07  IN3:000000   24  ZRUPT:000000   45 PIPA Y:000000     A:[  ] M:[  ]
+10 OUT0:         25  BRUPT:000000   46 PIPA Z:000000     V:[  ] N:[  ]
+11 OUT1:000000   26  ARUPT:000000   47  CDU X:000000    R1:[         ]
+12 OUT2:000000   27  QRUPT:000000   50  CDU Y:000000    R2:[         ]
+13 OUT3:000000   34  OVCTR:000000   51  CDU Z:000000    R3:[         ]
+14 OUT4:000000   35  TIME2:000000   52  OPT X:000000
+
+
+
+After CCS has executed; initial value for CCS K = 77777 (-0)
+
+> AGC4 SIMULATOR 1.14 -------------------------------
+ TP: TP1    F17:0   F13:0   F10:0   SCL:000076
+    STA:0   STB:0   BR1:1   BR2:1   SNI:1   CI:1   LOOPCTR:0
+ RPCELL:00000  INH1:0  INH:1  UpCELL:000  DnCELL:000  SQ:00  TC      TC0
+     CP:RB WY WS CI CLISQ
+      S:  2005   G:002011   P:002011   (r)RUN :1  (p)PURST:0 (F2,F4)FCLK:0
+    RBU:002011 WBU:002011  P2:1        (s)STEP:0
+      B:002011           CADR:002005   (n)INST:1      PALM:[ ]
+      X:000000   Y:177776   U:177777   (a)SA  :0
+
+00    A:000000   15   BANK:00       36  TIME1:000000   53   OPT Y:000000
+01    Q:000000   16 RELINT:         37  TIME3:000000   54  TRKR X:000000
+02    Z:002006   17 INHINT:         40  TIME4:000000   55  TRKR Y:000000
+03   LP:000000   20    CYR:000000   41 UPLINK:000000   56  TRKR Z:000000
+04  IN0:000000   21     SR:000000   42 OUTCR1:000000
+05  IN1:000000   22    CYL:000000   43 OUTCR2:000000    CF:[  ]:KR  [ ]:PA
+06  IN2:000000   23     SL:000000   44 PIPA X:000000
+07  IN3:000000   24  ZRUPT:000000   45 PIPA Y:000000     A:[  ] M:[  ]
+10 OUT0:         25  BRUPT:000000   46 PIPA Z:000000     V:[  ] N:[  ]
+11 OUT1:000000   26  ARUPT:000000   47  CDU X:000000    R1:[         ]
+12 OUT2:000000   27  QRUPT:000000   50  CDU Y:000000    R2:[         ]
+13 OUT3:000000   34  OVCTR:000000   51  CDU Z:000000    R3:[         ]
+14 OUT4:000000   35  TIME2:000000   52  OPT X:000000
+
+
+
+After CCS has executed; initial value for CCS K = 77776 (<0)
+
+> AGC4 SIMULATOR 1.14 -------------------------------
+ TP: TP1    F17:0   F13:0   F10:0   SCL:000076
+    STA:0   STB:0   BR1:1   BR2:0   SNI:1   CI:1   LOOPCTR:0
+ RPCELL:00000  INH1:0  INH:1  UpCELL:000  DnCELL:000  SQ:00  TC      TC0
+     CP:RB WY WS CI CLISQ
+      S:  2004   G:042010   P:102010   (r)RUN :1  (p)PURST:0 (F2,F4)FCLK:0
+    RBU:002010 WBU:002010  P2:1        (s)STEP:0
+      B:002010           CADR:002004   (n)INST:1      PALM:[ ]
+      X:000000   Y:177776   U:177777   (a)SA  :0
+
+00    A:000000   15   BANK:00       36  TIME1:000000   53   OPT Y:000000
+01    Q:000000   16 RELINT:         37  TIME3:000000   54  TRKR X:000000
+02    Z:002005   17 INHINT:         40  TIME4:000000   55  TRKR Y:000000
+03   LP:000000   20    CYR:000000   41 UPLINK:000000   56  TRKR Z:000000
+04  IN0:000000   21     SR:000000   42 OUTCR1:000000
+05  IN1:000000   22    CYL:000000   43 OUTCR2:000000    CF:[  ]:KR  [ ]:PA
+06  IN2:000000   23     SL:000000   44 PIPA X:000000
+07  IN3:000000   24  ZRUPT:000000   45 PIPA Y:000000     A:[  ] M:[  ]
+10 OUT0:         25  BRUPT:000000   46 PIPA Z:000000     V:[  ] N:[  ]
+11 OUT1:000000   26  ARUPT:000000   47  CDU X:000000    R1:[         ]
+12 OUT2:000000   27  QRUPT:000000   50  CDU Y:000000    R2:[         ]
+13 OUT3:000000   34  OVCTR:000000   51  CDU Z:000000    R3:[         ]
+14 OUT4:000000   35  TIME2:000000   52  OPT X:000000
+
+
+
+After CCS has executed; initial value for CCS K = 77775 (<0)
+
+> AGC4 SIMULATOR 1.14 -------------------------------
+ TP: TP1    F17:0   F13:0   F10:0   SCL:000076
+    STA:0   STB:0   BR1:1   BR2:0   SNI:1   CI:1   LOOPCTR:0
+ RPCELL:00000  INH1:0  INH:1  UpCELL:000  DnCELL:000  SQ:00  TC      TC0
+     CP:RB WY WS CI CLISQ
+      S:  2004   G:042010   P:102010   (r)RUN :1  (p)PURST:0 (F2,F4)FCLK:0
+    RBU:002010 WBU:002010  P2:1        (s)STEP:0
+      B:002010           CADR:002004   (n)INST:1      PALM:[ ]
+      X:000000   Y:177775   U:177776   (a)SA  :0
+
+00    A:000001   15   BANK:00       36  TIME1:000000   53   OPT Y:000000
+01    Q:000000   16 RELINT:         37  TIME3:000000   54  TRKR X:000000
+02    Z:002005   17 INHINT:         40  TIME4:000000   55  TRKR Y:000000
+03   LP:000000   20    CYR:000000   41 UPLINK:000000   56  TRKR Z:000000
+04  IN0:000000   21     SR:000000   42 OUTCR1:000000
+05  IN1:000000   22    CYL:000000   43 OUTCR2:000000    CF:[  ]:KR  [ ]:PA
+06  IN2:000000   23     SL:000000   44 PIPA X:000000
+07  IN3:000000   24  ZRUPT:000000   45 PIPA Y:000000     A:[  ] M:[  ]
+10 OUT0:         25  BRUPT:000000   46 PIPA Z:000000     V:[  ] N:[  ]
+11 OUT1:000000   26  ARUPT:000000   47  CDU X:000000    R1:[         ]
+12 OUT2:000000   27  QRUPT:000000   50  CDU Y:000000    R2:[         ]
+13 OUT3:000000   34  OVCTR:000000   51  CDU Z:000000    R3:[         ]
+14 OUT4:000000   35  TIME2:000000   52  OPT X:000000
+
+
+
+
+
+

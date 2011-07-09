@@ -1,0 +1,1062 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;========================================================================== 
+                          ; AGC (file:testmath.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		2/03/2002
+                          ; 
+                          ; PURPOSE:
+                          ; test math library
+                          ; 
+                          ; OPERATION:
+                          ; TBD.
+                          ; 
+                          ; 
+                          ;========================================================================== 
+                          
+                          ; ERASEABLE MEMORY DECLARATIONS
+                          
+                                         ORG      BANK0          ; immediately following counters
+                                         INCL     dsky_e.asm     ; DSKY variables
+                          ;========================================================================== 
+                          ; DSKY erasable memory segment (file:dsky_e.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		12/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Eraseable memory variables and structures for the DSKY. See the EXEC
+                          ; source code file for more information.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968.
+                          ;========================================================================== 
+                          
+00057    0057     00000 1 FLAGWRD5       DS       0              
+                          
+                          
+                          ; GENERAL ERASABLE ASSIGNMENTS
+                          ; (COLOSSUS, p. 66)
+                          
+                          
+                          ; interrupt temporary storage pool
+                          ; (ITEMP1 through RUPTREG4)
+                          
+00060    0060     00000 1 ITEMP1         DS       0              
+                          WAITEXIT       EQU      ITEMP1         
+                          EXECTEM1       EQU      ITEMP1         
+                          
+00061    0061     00000 1 ITEMP2         DS       0              
+                          WAITBANK       EQU      ITEMP2         
+                          EXECTEM2       EQU      ITEMP2         
+                          
+00062    0062     00000 1 ITEMP3         DS       0              
+                          RUPTSTOR       EQU      ITEMP3         
+                          WAITADR        EQU      ITEMP3         
+                          NEWPRIO        EQU      ITEMP3         
+                          
+00063    0063     00000 1 ITEMP4         DS       0              
+                          LOCCTR         EQU      ITEMP4         
+                          WAITTEMP       EQU      ITEMP4         
+                          
+00064    0064     00000 1 ITEMP5         DS       0              
+                          NEWLOC         EQU      ITEMP5         
+                          
+00065    0065     00000 1 ITEMP6         DS       0              
+                          NEWLOCP1       EQU      ITEMP6         ; DP address
+                          
+00066    0066     00000 1 NEWJOB         DS       0              ; COLOSSUS: must be at loc 68 due to wiring
+00067    0067     00000 1 RUPTREG1       DS       0              
+00070    0070     00000 1 RUPTREG2       DS       0              
+00071    0071     00000 1 RUPTREG3       DS       0              
+00072    0072     00000 1 RUPTREG4       DS       0              
+                          KEYTEMP1       EQU      RUPTREG4       
+                          DSRUPTEM       EQU      RUPTREG4       
+                          
+                          
+                          ; FLAGWORD reservations
+                          
+                          STATE          EQU      *              ; 12 words
+00073    0073     00000 1                DS       0              
+00074    0074     00000 1                DS       0              
+00075    0075     00000 1                DS       0              
+00076    0076     00000 1                DS       0              
+00077    0077     00000 1                DS       0              
+00100    0100     00000 1                DS       0              
+00101    0101     00000 1                DS       0              
+00102    0102     00000 1                DS       0              
+00103    0103     00000 1                DS       0              
+00104    0104     00000 1                DS       0              
+00105    0105     00000 1                DS       0              
+00106    0106     00000 1                DS       0              
+                          
+                          FLAGFILL       EQU      *              ; space for future flags
+00107    0107     00000 1                DS       0              
+00110    0110     00000 1                DS       0              
+00111    0111     00000 1                DS       0              
+00112    0112     00000 1                DS       0              
+                          
+                          ; pad load for DAPs
+                          ; (COLOSSUS, p. 67)
+                          
+                          EMDOT          EQU      FLAGFILL       
+                          
+                          ; exit for VB3
+                          
+                          STATEXIT       EQU      FLAGFILL+2     
+                          
+                          ; EXEC temporaries which may be used between CCS NEWJOBS.
+                          ; (INTB15P through RUPTMXM)
+                          
+00113    0113     00000 1 INTB15P        DS       0              ; reflects 15th bit of indexable addresses
+                          DSEXIT         EQU      INTB15P        ; return for DSPIN
+                          EXITEM         EQU      INTB15P        ; return for scale factor routine select
+                          BLANKRET       EQU      INTB15P        ; return for 2BLANK
+                          
+00114    0114     00000 1 INTBIT15       DS       0              ; similar to above
+                          WRDRET         EQU      INTBIT15       ; return for 5BLANK
+                          WDRET          EQU      INTBIT15       ; return for DSPWD
+                          DECRET         EQU      INTBIT15       ; return for PUTCOM (dec load)
+                          _2122REG       EQU      INTBIT15       ; temp for CHARIN
+                          
+                          ; The registers between ADDRWD and PRIORITY must stay in the following order
+                          ; for interpretive trace.
+                          
+00115    0115     00000 1 ADDRWD         DS       0              ; 12 bit interpretive operand subaddress
+00116    0116     00000 1 POLISH         DS       0              ; holds CADR made from POLISH address
+                          UPDATRET       EQU      POLISH         ; return for UPDATNN, UPDATVB
+                          CHAR           EQU      POLISH         ; temp for CHARIN
+                          ERCNT          EQU      POLISH         ; counter for error light reset
+                          DECOUNT        EQU      POLISH         ; counter for scaling and display (dec)
+                          
+00117    0117     00000 1 FIXLOC         DS       0              ; work area address
+00120    0120     00000 1 OVFIND         DS       0              ; set non-zero on overflow
+                          
+                          VBUF           EQU      *              ; temporary storage used for vectors
+00121    0121     00000 1                DS       0              
+00122    0122     00000 1                DS       0              
+00123    0123     00000 1                DS       0              
+00124    0124     00000 1                DS       0              
+00125    0125     00000 1                DS       0              
+00126    0126     00000 1                DS       0              
+                          SGNON          EQU      VBUF           ; temp for +,- on
+                          NOUNTEM        EQU      VBUF           ; counter for MIXNOUN fetch
+                          DISTEM         EQU      VBUF           ; counter for octal display verbs
+                          DECTEM         EQU      VBUF           ; counter for fetch (dec display verbs)
+                          
+                          SGNOFF         EQU      VBUF+1         ; temp for +,- off
+                          MVTEMP         EQU      VBUF+1         ; temp for NVSUB
+                          SFTEMP1        EQU      VBUF+1         ; storage for SF const hi part(=SFTEMP2-1)
+                          HITEMIN        EQU      VBUF+1         ; temp for load of hrs, min, sec
+                          ; must = LOWTEMIN-1
+                          
+                          CODE           EQU      VBUF+2         ; for DSPIN
+                          SFTEMP2        EQU      VBUF+2         ; storage for SF const low part(=SFTEMP1+1)
+                          LOWTEMIN       EQU      VBUF+2         ; temp for load of hrs, min, sec
+                          ; must = HITEMIN+1 
+                          
+                          ; (COLOSSUS, p. 68)
+                          
+                          MIXTEMP        EQU      VBUF+3         ; for MIXNOUN data
+                          SIGNRET        EQU      VBUF+3         ; return for +,- on
+                          
+                          ; Also, MIXTEMP+1 = VBUF+4, MIXTEMP+2 = VBUF+5
+                          
+                          BUF            EQU      *              ; temporary scalar storage
+00127    0127     00000 1                DS       0              
+00130    0130     00000 1                DS       0              
+00131    0131     00000 1                DS       0              
+                          
+00132    0132     00000 1 BUF2           DS       0              
+00133    0133     00000 1                DS       0              
+                          
+                          INDEXLOC       EQU      BUF            ; contains address of specified index
+                          SWWORD         EQU      BUF            ; address of switch word
+                          SWBIT          EQU      BUF+1          ; switch bit within switch word
+00134    0134     00000 1 MPTEMP         DS       0              ; temporary used in multiply and shift
+                          DMPNTEMP       EQU      MPTEMP         ; DMPSUB temporary
+00135    0135     00000 1 DOTINC         DS       0              ; component increment for DOT subroutine
+                          DVSIGN         EQU      DOTINC         ; determines sign of DDV result
+                          ESCAPE         EQU      DOTINC         ; used in arcsin/arccos
+                          ENTRET         EQU      DOTINC         ; exit from enter
+                          
+00136    0136     00000 1 DOTRET         DS       0              ; return from DOT subroutine
+                          DVNORMCT       EQU      DOTRET         ; dividend normalization count in DDV
+                          ESCAPE2        EQU      DOTRET         ; alternate arcsin/arccos switch
+                          WDCNT          EQU      DOTRET         ; char counter for DSPWD
+                          INREL          EQU      DOTRET         ; input buffer selector (X,Y,Z REG)
+                          
+00137    0137     00000 1 MATINC         DS       0              ; vector increment in MXV and VXM
+                          MAXDVSW        EQU      MATINC         ; +0 if DP quotient is near one - else -1
+                          POLYCNT        EQU      MATINC         ; polynomial loop counter
+                          DSPMMTEM       EQU      MATINC         ; DSPCOUNT save for DSPMM
+                          MIXBR          EQU      MATINC         ; indicator for mixed or normal noun
+                          
+00140    0140     00000 1 TEM1           DS       0              ; EXEC temp
+                          POLYRET        EQU      TEM1           
+                          DSREL          EQU      TEM1           ; rel address for DSPIN
+                          
+00141    0141     00000 1 TEM2           DS       0              ; EXEC temp
+                          DSMAG          EQU      TEM2           ; magnitude store for DSPIN
+                          IDADDTEM       EQU      TEM2           ; mixnoun indirect address store
+                          
+00142    0142     00000 1 TEM3           DS       0              ; EXEC temp
+                          COUNT          EQU      TEM3           ; for DSPIN
+                          
+00143    0143     00000 1 TEM4           DS       0              ; EXEC temp
+                          LSTPTR         EQU      TEM4           ; list pointer for GRABUSY
+                          RELRET         EQU      TEM4           ; return for RELDSP
+                          FREERET        EQU      TEM4           ; return for FREEDSP
+                          DSPWDRET       EQU      TEM4           ; return for DSPSIGN
+                          SEPSCRET       EQU      TEM4           ; return for SEPSEC
+                          SEPMNRET       EQU      TEM4           ; return for SEPMIN
+                          
+00144    0144     00000 1 TEM5           DS       0              ; EXEC temp
+                          NOUNADD        EQU      TEM5           ; temp storage for noun address
+                          
+                          ; (COLOSSUS, p. 69)
+                          
+00145    0145     00000 1 NNADTEM        DS       0              ; temp for noun address table entry
+00146    0146     00000 1 NNTYPTEM       DS       0              ; temp for noun type table entry
+00147    0147     00000 1 IDAD1TEM       DS       0              ; temp for indir address table entry (MIXNN)
+                          ; must - IDAD2TEM-1, = IDAD3TEM-2
+00150    0150     00000 1 IDAD2TEM       DS       0              ; temp for indir address table entry (MIXNN)
+                          ; must - IDAD2TEM+1, = IDAD3TEM-1
+00151    0151     00000 1 IDAD3TEM       DS       0              ; temp for indir address table entry (MIXNN)
+                          ; must - IDAD1TEM+2, = IDAD2TEM+1
+00152    0152     00000 1 RUTMXTEM       DS       0              ; temp for SF rout table entry (MIXNN only)
+                          
+                          ; AX*SR*T storage
+                          
+                          DEXDEX         EQU      TEM2           ; B(1) tmp
+                          DEX1           EQU      TEM3           ; B(1) tmp
+                          DEX2           EQU      TEM4           ; B(1) tmp
+                          RTNSAVER       EQU      TEM5           ; B(1) tmp
+                          TERM1TMP       EQU      BUF2           ; B(2) tmp
+                          
+                          ; (COLOSSUS, p. 70)
+                          
+                          ; dynamically allocated core sets for jobs (8 sets)
+                          
+                          MPAC           EQU      *              ; multi-purpose accumulator
+00153    0153     00000 1                DS       0              
+00154    0154     00000 1                DS       0              
+00155    0155     00000 1                DS       0              
+00156    0156     00000 1                DS       0              
+00157    0157     00000 1                DS       0              
+00160    0160     00000 1                DS       0              
+00161    0161     00000 1                DS       0              
+                          
+00162    0162     00000 1 MODE           DS       0              ; +1 for TP, +0 for DP, or -1 for vector
+00163    0163     00000 1 LOC            DS       0              ; location associated with job
+00164    0164     00000 1 BANKSET        DS       0              ; usually contains bank setting
+00165    0165     00000 1 PUSHLOC        DS       0              ; word of packed interpretive parameters
+00166    0166     00000 1 PRIORITY       DS       0              ; priority of present job and work area
+                          
+                                         ORG      7@12+MPAC      ; 7 sets (total) of 12 registers each
+                          
+                          
+                          ; (COLOSSUS, p. 72)
+                          ; unswitched for display interface routines
+                          
+00277    0277     00000 1 RESTREG        DS       0              ; B(1) prm for display starts
+00300    0300     00000 1 NVWORD         DS       0              
+00301    0301     00000 1 MARXNV         DS       0              
+00302    0302     00000 1 NVSAVE         DS       0              
+                          ; (retain the order of CADRFLSH to FAILREG+2 for downlink purposes)
+00303    0303     00000 1 CADRFLSH       DS       0              ; B(1) tmp
+00304    0304     00000 1 CADRMARK       DS       0              ; B(1) tmp
+00305    0305     00000 1 TEMPFLSH       DS       0              ; B(1) tmp
+00306    0306     00000 1 FAILREG        DS       0              ; B(3) prm  3 alarm-abort user=S 2CADR
+00307    0307     00000 1                DS       0              
+00310    0310     00000 1                DS       0              
+                          
+                          
+                          ; (COLOSSUS, p. 73)
+                          ; verb 37 storage
+                          
+00311    0311     00000 1 MINDEX         DS       0              ; B(1) tmp index for major mode
+00312    0312     00000 1 MMNUMBER       DS       0              ; B(1) tmp major mode requested via V37
+                          
+                          ; pinball interrupt storage
+                          
+00313    0313     00000 1 DSPCNT         DS       0              ; B(1) prm DSPOUT counter
+                          
+                          ; pinball executive action
+                          
+00314    0314     00000 1 DSPCOUNT       DS       0              ; display position indicator
+00315    0315     00000 1 DECBRNCH       DS       0              ; octal=0, +dec=1, -dec=2
+00316    0316     00000 1 VERBREG        DS       0              ; verb code
+00317    0317     00000 1 NOUNREG        DS       0              ; noun code
+00320    0320     00000 1 XREG           DS       0              ; R1 input buffer
+00321    0321     00000 1 YREG           DS       0              ; R2 input buffer
+00322    0322     00000 1 ZREG           DS       0              ; R3 input buffer
+00323    0323     00000 1 XREGLP         DS       0              ; low part of XREG (for ded conv only)
+00324    0324     00000 1 YREGLP         DS       0              ; low part of YREG (for ded conv only)
+                          HITEMOUT       EQU      YREGLP         ; temp for display of HRS, MIN, SEC
+                          ;   must equal LOTEMOUT-1
+00325    0325     00000 1 ZREGLP         DS       0              ; low part of ZREG (for ded conv only)
+                          LOTEMOUT       EQU      ZREGLP         ; temp for display of HRS, MIN, SEC
+                          ;   must equal HITEMOUT+1
+                          ; (COLOSSUS, p. 74)
+                          
+00326    0326     00000 1 MODREG         DS       0              ; mode code
+00327    0327     00000 1 DSPLOCK        DS       0              ; keyboard/subroutine call interlock
+00330    0330     00000 1 REQRET         DS       0              ; return register for load
+00331    0331     00000 1 LOADSTAT       DS       0              ; status indicator for LOADTST
+00332    0332     00000 1 CLPASS         DS       0              ; pass indicator clear
+00333    0333     00000 1 NOUT           DS       0              ; activity counter for DSPTAB
+00334    0334     00000 1 NOUNCADR       DS       0              ; machine CADR for noun
+00335    0335     00000 1 MONSAVE        DS       0              ; N/V code for monitor (= MONSAVE1 - 1)
+00336    0336     00000 1 MONSAVE1       DS       0              ; NOUNCADR for monitor (MATBS) = MONSAVE + 1
+00337    0337     00000 1 MONSAVE2       DS       0              ; NVMONOPT options
+                          
+                          ; The 11 register table for the display panel (COLOSSUS, p.74, p.306)
+                          ; comment key =   RELADD: RELAYWD  BIT11  BITS10-6  BITS5-1
+                          
+                          DSPTAB         EQU      *              
+00340    0340     00000 1                DS       0              ; 0: 0001  -R3  R3D4( 1)  R3D5( 0)
+00341    0341     00000 1                DS       0              ; 1: 0010  +R3  R3D2( 3)  R3D3( 2)
+00342    0342     00000 1                DS       0              ; 2: 0011  ---  R2D5( 5)  R3D1( 4)	
+00343    0343     00000 1                DS       0              ; 3: 0100  -R2  R2D3( 7)  R2D4( 6)
+00344    0344     00000 1                DS       0              ; 4: 0101  +R2  R2D1(11)  R2D2(10)
+00345    0345     00000 1                DS       0              ; 5: 0110  -R1  R1D4(13)  R1D5(12)
+00346    0346     00000 1                DS       0              ; 6: 0111  +R1  R1D2(15)  R1D3(14)
+00347    0347     00000 1                DS       0              ; 7: 1000  ---  --------  R1D1(16)
+00350    0350     00000 1                DS       0              ; 8: 1001  ---  ND1 (21)  ND2 (20)
+00351    0351     00000 1                DS       0              ; 9: 1010  ---  VD1 (23)  VD2 (22)
+00352    0352     00000 1                DS       0              ; 10:1011  ---  MD1 (25)  MD1 (24)
+00353    0353     00000 1                DS       0              ; 11: C/S lights
+                          
+00354    0354     00000 1 NVQTEM         DS       0              ; NVSUB storage for calling address
+                          ; must = NVBNKTEM-1
+00355    0355     00000 1 NVBNKTEM       DS       0              ; NVSUB storage for calling bank
+                          ; must = NVQTEM+1
+00356    0356     00000 1 VERBSAVE       DS       0              ; needed for recycle
+00357    0357     00000 1 CADRSTOR       DS       0              ; ENDIDLE storage
+00360    0360     00000 1 DSPLIST        DS       0              ; waiting reg for DSP syst internal use
+00361    0361     00000 1 EXTVRACT       DS       0              ; extended verb activity interlock
+                          
+00362    0362     00000 1 DSPTEM1        DS       0              ; buffer storage area 1 (mostly for time)
+00363    0363     00000 1                DS       0              
+00364    0364     00000 1                DS       0              
+                          
+00365    0365     00000 1 DSPTEM2        DS       0              ; buffer storage area 2 (mostly for deg)
+00366    0366     00000 1                DS       0              
+00367    0367     00000 1                DS       0              
+                          
+                          DSPTEMX        EQU      DSPTEM2        ; B(2) S-S display buffer for external verbs
+                          NORMTEM1       EQU      DSPTEM1        ; B(3) DSP normal display registers
+                          
+                          ; display for extended verbs
+                          
+                          OPTIONX        EQU      DSPTEMX        ; B(2) extended verb option code N12(VB2)
+                          
+                          
+                          ; T4RUPT Erasable
+                          
+00370    0370     00000 1 DSRUPTSW       DS       0              ; (COLOSSUS, p. 78)
+00371    0371     00000 1 T4RET          DS       0              ; added, not part of COLOSSUS
+00372    0372     00000 1 DSPOUTRET      DS       0              ; added, not part of COLOSSUS
+00373    0373     00000 1 DK_IN_saveQ    DS       0              ; return for T4RUPT init
+                          
+                          
+                          ; Replacement for Block II LXCH instruction (not part of COLOSSUS)
+                          
+00374    0374     00000 1 LXCH_LPRET     DS       0              ; LP return address
+00375    0375     00000 1 LXCH_A         DS       0              ; save A
+                          
+                          
+                          ; Vars for DPTEST (not part of COLOSSUS)
+                          
+00376    0376     00000 1 DPTEST_A       DS       0              
+00377    0377     00000 1 DPTEST_Q       DS       0              
+                          
+                          
+                          ; Vars for REQDATX, REQDATY, REQDATZ (not part of COLOSSUS)
+                          
+00400    0400     00000 1 REQ_Q          DS       0              
+                          
+                          
+                          ; Vars for SETNCADR (not part of COLOSSUS)
+                          
+00401    0401     00000 1 SETNCADR_Q     DS       0              
+                          
+                          
+                          ; Vars for ALLDC_OC (not part of COLOSSUS)
+                          
+00402    0402     00000 1 ALLDC_OC_Q     DS       0              
+                          
+                          
+                          ; Vars for SFRUTMIX (not part of COLOSSUS)
+                          
+00403    0403     00000 1 SFRUTMIX_L     DS       0              
+                          
+                          
+                          ; Vars for SFCONUM (not part of COLOSSUS)
+                          
+00404    0404     00000 1 SFCONUM_L      DS       0              
+                          
+                          
+                          ; Vars for GTSFOUT, GTSFIN (not part of COLOSSUS)
+                          
+00405    0405     00000 1 GTSF_RET       DS       0              
+                          
+                          
+                          ; Vars for MATH LIB (not part of COLOSSUS)
+                          
+00406    0406     00000 1 SHORTMP_A      DS       0              
+00407    0407     00000 1 SHORTMP_OVFL   DS       0              
+00410    0410     00000 1 SHORTMP_OVFH   DS       0              
+                          
+00411    0411     00000 1 ADDRWD1        DS       0              ; for DMP, TPAGREE
+                          
+00412    0412     00000 1 MATH_Q         DS       0              
+                          
+                          
+                          ; KEYRUPT Eraseable
+                          
+00413    0413     00000 1 KEYRET         DS       0              ; added, not part of COLOSSUS
+00414    0414     00000 1 KEY_IN         DS       0              ; temp for keybd code
+                          
+00415    0415     00000 1 SAVEQ          DS       0              ; temp for return addr
+                          
+                          
+                          ; Bank intercommunication
+                          
+00416    0416     00000 1 BJBANK         DS       0              
+00417    0417     00000 1 BJRET          DS       0              
+                          
+00420    0420     00000 1 PJBANK         DS       0              
+00421    0421     00000 1 PJRET          DS       0              
+00422    0422     00000 1 PJA            DS       0              
+                          
+00423    0423     00000 1 BCBANK         DS       0              
+00424    0424     00000 1 BCRET          DS       0              
+00425    0425     00000 1 BCA            DS       0              
+                          
+00426    0426     00000 1 DCBANK         DS       0              
+00427    0427     00000 1 DCRET          DS       0              
+                          
+                          
+                          ; FIXED MEMORY DECLARATIONS
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; EXECUTION ENTRY POINTS
+                          ;-------------------------------------------------------------------------- 
+                          
+                          ; Program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2102 0                TC       goMAIN         ; AGC (re)start begins here!
+                          
+                          ; Interrupt vectors
+                                         ORG      T3RUPT         
+02004    2004 5  0,0026 0                TS       ARUPT          ; TIME3 interrupt vector
+02005    2005 3  0,0001 0                XCH      Q              
+02006    2006 5  0,0027 1                TS       QRUPT          
+02007    2007 0  1,2034 1                TC       goT3           
+                          
+                                         ORG      ERRUPT         
+02010    2010 5  0,0026 0                TS       ARUPT          
+02011    2011 3  0,0001 0                XCH      Q              
+02012    2012 5  0,0027 1                TS       QRUPT          
+02013    2013 0  1,2035 0                TC       goER           
+                          
+                                         ORG      DSRUPT         ; T4RUPT for DSKY display
+02014    2014 5  0,0026 0                TS       ARUPT          
+02015    2015 3  0,0001 0                XCH      Q              
+02016    2016 5  0,0027 1                TS       QRUPT          
+02017    2017 0  1,2036 0                TC       goDS           
+                          
+                                         ORG      KEYRUPT        ; DSKY keyboard interrupt vector
+02020    2020 5  0,0026 0                TS       ARUPT          
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0027 1                TS       QRUPT          
+02023    2023 0  1,2037 1                TC       goKEY          
+                          
+                                         ORG      UPRUPT         
+02024    2024 5  0,0026 0                TS       ARUPT          
+02025    2025 3  0,0001 0                XCH      Q              
+02026    2026 5  0,0027 1                TS       QRUPT          
+02027    2027 0  1,2040 1                TC       goUP           
+                          
+                          endRUPT        EQU      *              
+02030    2030 3  0,0027 1                XCH      QRUPT          ; restore Q
+02031    2031 5  0,0001 0                TS       Q              
+02032    2032 3  0,0026 0                XCH      ARUPT          ; restore A
+02033    2033 2  0,0000 1                RESUME                  ; resume normal program execution
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; RUPT (INTERRUPT) SERVICE ROUTINES
+                          ; 
+                          ; Upon entry, registers will contain these values:
+                          ; - ZRUPT: Prior contents of program counter (Z register).
+                          ; - BRUPT: Prior contents of B register.
+                          ; - ARUPT: Prior contents of accumulator (A register).
+                          ; - QRUPT: Prior contents of Q register.
+                          ; 
+                          ; When the service routine is finished, jump to endRUPT to restore the A
+                          ; and Q registers. Call RESUME to restore Z and B, which causes a return
+                          ; to normal (non-interrupt) execution. Interrupts are disabled upon entry
+                          ; to the service routine; they are reenabled following RESUME.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          goT3           EQU      *              
+02034    2034 0  1,2030 0                TC       endRUPT        
+                          
+                          goER           EQU      *              
+02035    2035 0  1,2030 0                TC       endRUPT        
+                          
+                          goDS           EQU      *              
+02036    2036 0  1,2030 0                TC       endRUPT        
+                          
+                          goKEY          EQU      *              
+02037    2037 0  1,2030 0                TC       endRUPT        
+                          
+                          goUP           EQU      *              
+02040    2040 0  1,2030 0                TC       endRUPT        
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; FIXED MEMORY CONSTANTS (shared)
+                          ;-------------------------------------------------------------------------- 
+                          
+02041    2041     00200 0 ofbit          DS       %200           ; OUT1, bit 8 initiates standby
+                          
+02042    2042     77777 0 NEG0           DS       -0             
+02043    2043     77776 1 NEG1           DS       -1             
+02044    2044     77775 1 NEG2           DS       -2             
+                          
+02045    2045     00000 1 ZERO           DS       0              
+02046    2046     00001 0 ONE            DS       1              
+02047    2047     00002 0 TWO            DS       2              
+02050    2050     00003 1 THREE          DS       3              
+02051    2051     00004 0 FOUR           DS       4              
+02052    2052     00005 1 FIVE           DS       5              
+02053    2053     00006 1 SIX            DS       6              
+02054    2054     00007 0 SEVEN          DS       7              
+02055    2055     00012 1 TEN            DS       10             
+                          
+02056    2056     00001 0 BIT1           DS       %00001         
+02057    2057     00020 0 BIT5           DS       %00020         
+02060    2060     00100 0 BIT7           DS       %00100         
+02061    2061     02000 0 BIT11          DS       %02000         
+02062    2062     04000 0 BIT12          DS       %04000         
+02063    2063     20000 0 BIT14          DS       %20000         
+02064    2064     40000 0 BIT15          DS       %40000         
+                          
+02065    2065     06000 1 bankAddr       DS       %6000          ; fixed-switchable addr range starts here
+02066    2066     01777 1 lowAddr        DS       %1777          ; mask for 10-bit address
+02067    2067     01400 1 OCT1400        DS       %1400          
+                          
+02070    2070     00013 0 NOUTCON        DS       11             
+                          
+                          ;------------------------------------------------------------------------- 
+                          ; MAIN PROGRAM
+                          ; 
+                          ; AGC starts executing here, following power-up, or restart.
+                          ;------------------------------------------------------------------------- 
+                          
+02071    2071     00001 0 VAL            DS       +1             
+02072    2072     40000 0 VAL1           DS       %40000         ; largest negative value
+02073    2073     00000 1 VAL2           DS       %0             
+                          
+02074    2074     00001 0 P1             DS       %00001         
+02075    2075     00000 1 P0             DS       %00000         
+02076    2076     37777 1 PHIGH          DS       %37777         
+                          
+02077    2077     77776 1 M1             DS       %77776         ; -1
+02100    2100     77777 0 M0             DS       %77777         
+02101    2101     40000 0 MHIGH          DS       %40000         
+                          
+                          
+                          goMAIN         EQU      *              
+02102    2102 2  0,0000 0                INHINT                  ; inhibit interrupts
+                          
+02103    2103 3  1,2074 0                CAF      P1             
+02104    2104 5  0,0153 0                TS       MPAC           
+                          
+02105    2105 3  1,2074 0                CAF      P1             
+02106    2106 5  0,0154 1                TS       MPAC+1         
+                          
+02107    2107 3  1,2100 1                CAF      M0             
+02110    2110 0  1,2315 1                TCR      SHORTMP        
+                          
+                          
+                          imdone         EQU      *              
+02111    2111 0  1,2111 1                TC       imdone         
+                          ;-------------------------------------------------------------------------- 
+                          
+                          ; library stuff in fixed-fixed.
+                          
+                                         INCL     math_f.asm     ; DP math routines
+                          ;========================================================================== 
+                          ; MATH LIBRARY (source code) memory segment (file:dsky_fmath.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		03/01/2002
+                          ; 
+                          ; PURPOSE:
+                          ; Contains double precision math routines.
+                          ; 
+                          ;========================================================================== 
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; TPAGREE
+                          ; Force the signs in a triple precision (TP) word to agree. The word is
+                          ; in MPAC, MPAC+1, MPAC+2
+                          ; 
+                          ; The sign of the corrected number is always the sign of the most-significant
+                          ; non-zero word.
+                          ; 
+                          ; This isn't included in my partial COLOSSUS listing, so I had to invent
+                          ; my own version.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          
+                          TPAGREE        EQU      *              
+02112    2112 3  0,0001 0                XCH      Q              
+02113    2113 5  0,0412 0                TS       MATH_Q         ; return address
+                          
+                          ; Find the sign to convert to. It will be the sign
+                          ; of the most significant non-zero word.
+                          
+                          TPA_SGN0       EQU      *              
+02114    2114 1  0,0153 1                CCS      MPAC           
+02115    2115 0  1,2121 1                TC       TPA_P0         ; >0, sign will be +
+02116    2116 0  1,2203 1                TC       TPA_SGN1       ; +0, still don't know sign, check MPAC+1
+02117    2117 0  1,2152 0                TC       TPA_M0         ; <0, sign will be -
+02120    2120 0  1,2203 1                TC       TPA_SGN1       ; -0, still don't know sign, check MPAC+1
+                          
+                          
+                          ; MPAC is non-zero positive, so reconcile signs to a positive number.
+                          
+                          TPA_P0         EQU      *              
+02121    2121 1  0,0154 0                CCS      MPAC+1         
+02122    2122 0  1,2212 1                TC       TPA_P1+2       ; >0, MPAC+1 is OK, check MPAC+2
+02123    2123 0  1,2131 0                TC       TPA_PZ0        ; +0, 
+02124    2124 0  1,2126 0                TC       *+2            ; <0, fix MPAC+1
+02125    2125 0  1,2131 0                TC       TPA_PZ0        ; -0, 
+                          
+02126    2126 3  1,2261 0                CAF      TPA_MPAC0      ; borrow from MPAC to correct MPAC+1
+02127    2127 0  1,2301 1                TC       TPA_FIXP       
+02130    2130 0  1,2212 1                TC       TPA_P1+2       ; MPAC+1 is now non-zero positive; check MPAC+2
+                          
+                          ; MPAC is non-zero positive, MPAC+1 is zero
+                          
+                          TPA_PZ0        EQU      *              
+02131    2131 1  0,0155 1                CCS      MPAC+2         
+02132    2132 0  1,2137 0                TC       *+5            ; >0, zero MPAC+1, MPAC+2 is OK
+02133    2133 0  1,2135 1                TC       *+2            ; +0, MPAC+1, +2 both zero
+02134    2134 0  1,2142 1                TC       TPA_PZ0FIX     ; <0,
+                          
+02135    2135 3  1,2045 1                CAF      ZERO           ; make sure they're both +0
+02136    2136 5  0,0155 0                TS       MPAC+2         
+02137    2137 3  1,2045 1                CAF      ZERO           
+02140    2140 5  0,0154 1                TS       MPAC+1         
+02141    2141 0  0,0412 0                TC       MATH_Q         
+                          
+                          ; MPAC is non-zero positive, MPAC+1 is zero, MPAC+2 is non-zero negative.
+                          ; Solution: borrow from MPAC, transfer borrowed value to MPAC+1, but also
+                          ; borrow from MPAC+1, use borrowed value to correct MPAC+2.
+                          
+                          TPA_PZ0FIX     EQU      *              
+02142    2142 3  0,0155 0                XCH      MPAC+2         ; move MPAC+2 to MPAC+1 so we can use
+02143    2143 5  0,0154 1                TS       MPAC+1         ; our standard correction function
+                          
+02144    2144 3  1,2261 0                CAF      TPA_MPAC0      ; borrow from MPAC to correct MPAC+1
+02145    2145 0  1,2301 1                TC       TPA_FIXP       
+                          
+02146    2146 3  1,2257 0                CAF      MAXPOS         ; move corrected value from MPAC+1 back
+02147    2147 3  0,0154 1                XCH      MPAC+1         ; to MPAC+2. Set MPAC+1 to correct value
+02150    2150 5  0,0155 0                TS       MPAC+2         ; borrowed from MPAC.
+02151    2151 0  0,0412 0                TC       MATH_Q         
+                          
+                          
+                          ; The MPAC is non-zero negative, so reconcile signs to a negative number.
+                          
+                          TPA_M0         EQU      *              
+02152    2152 1  0,0154 0                CCS      MPAC+1         
+02153    2153 0  1,2157 0                TC       *+4            ; >0, fix MPAC+1
+02154    2154 0  1,2162 0                TC       TPA_MZ0        ; +0, 
+02155    2155 0  1,2226 0                TC       TPA_M1+2       ; <0, MPAC+1 is OK, check MPAC+2
+02156    2156 0  1,2162 0                TC       TPA_MZ0        ; -0, 
+                          
+02157    2157 3  1,2261 0                CAF      TPA_MPAC0      ; borrow from MPAC to correct MPAC+1
+02160    2160 0  1,2263 1                TC       TPA_FIXM       
+02161    2161 0  1,2226 0                TC       TPA_M1+2       
+                          
+                          ; MPAC is non-zero negative, MPAC+1 is zero
+                          
+                          TPA_MZ0        EQU      *              
+02162    2162 1  0,0155 1                CCS      MPAC+2         
+02163    2163 0  1,2173 0                TC       TPA_MZ0FIX     ; >0, 
+02164    2164 0  1,2166 1                TC       *+2            ; +0, MPAC+1, +2 both zero
+02165    2165 0  1,2170 0                TC       *+3            ; <0, zero MPAC+1, MPAC+2 is OK
+                          
+02166    2166 3  1,2042 0                CAF      NEG0           ; make sure they're both -0
+02167    2167 5  0,0155 0                TS       MPAC+2         
+02170    2170 3  1,2042 0                CAF      NEG0           
+02171    2171 5  0,0154 1                TS       MPAC+1         
+02172    2172 0  0,0412 0                TC       MATH_Q         
+                          
+                          ; MPAC is non-zero negative, MPAC+1 is zero, MPAC+2 is non-zero positive
+                          ; Solution: borrow from MPAC, transfer borrowed value to MPAC+1, but also
+                          ; borrow from MPAC+1, use borrowed value to correct MPAC+2.
+                          
+                          TPA_MZ0FIX     EQU      *              
+02173    2173 3  0,0155 0                XCH      MPAC+2         ; move MPAC+2 to MPAC+1 so we can use
+02174    2174 5  0,0154 1                TS       MPAC+1         ; our standard correction function
+                          
+02175    2175 3  1,2261 0                CAF      TPA_MPAC0      ; borrow from MPAC to correct MPAC+1
+02176    2176 0  1,2263 1                TC       TPA_FIXM       
+                          
+02177    2177 3  1,2260 1                CAF      MAXNEG         ; move corrected value from MPAC+1 back
+02200    2200 3  0,0154 1                XCH      MPAC+1         ; to MPAC+2. Set MPAC+1 to correct value
+02201    2201 5  0,0155 0                TS       MPAC+2         ; borrowed from MPAC.
+02202    2202 0  0,0412 0                TC       MATH_Q         
+                          
+                          
+                          ; MPAC was zero, so we still don't know the sign. Check MPAC+1.
+                          
+                          TPA_SGN1       EQU      *              
+02203    2203 1  0,0154 0                CCS      MPAC+1         
+02204    2204 0  1,2210 0                TC       TPA_P1         ; >0, sign will be +
+02205    2205 0  1,2241 1                TC       TPA_SGN2       ; +0, still don't know sign, check MPAC+2
+02206    2206 0  1,2224 1                TC       TPA_M1         ; <0, sign will be -
+02207    2207 0  1,2241 1                TC       TPA_SGN2       ; -0, still don't know sign, check MPAC+2
+                          
+                          ; MPAC+1 is non-zero positive, so reconcile signs to a positive number.
+                          
+                          TPA_P1         EQU      *              
+02210    2210 3  1,2045 1                CAF      ZERO           
+02211    2211 5  0,0153 0                TS       MPAC           ; set MPAC to +0
+                          
+02212    2212 1  0,0155 1                CCS      MPAC+2         
+02213    2213 0  0,0412 0                TC       MATH_Q         ; >0, all words are positive
+02214    2214 0  0,0412 0                TC       MATH_Q         ; +0, all words are positive
+02215    2215 0  1,2221 1                TC       *+4            ; <0, MPAC+2 is nonzero -
+02216    2216 3  1,2045 1                CAF      ZERO           ; -0, change to +0 and we're done
+02217    2217 5  0,0155 0                TS       MPAC+2         
+02220    2220 0  0,0412 0                TC       MATH_Q         
+                          
+02221    2221 3  1,2262 0                CAF      TPA_MPAC1      ; borrow from MPAC+1 to correct MPAC+2
+02222    2222 0  1,2301 1                TC       TPA_FIXP       
+02223    2223 0  0,0412 0                TC       MATH_Q         
+                          
+                          ; MPAC+1 is non-zero negative, so reconcile signs to a negative number.
+                          
+                          TPA_M1         EQU      *              
+02224    2224 3  1,2042 0                CAF      NEG0           
+02225    2225 5  0,0153 0                TS       MPAC           ; set MPAC to -0
+                          
+02226    2226 1  0,0155 1                CCS      MPAC+2         
+02227    2227 0  1,2236 1                TC       *+7            ; >0, MPAC+2 is nonzero +
+02230    2230 0  1,2233 1                TC       *+3            ; +0, change to -0 and we're done
+02231    2231 0  0,0412 0                TC       MATH_Q         ; <0, all words are negative
+02232    2232 0  0,0412 0                TC       MATH_Q         ; -0, all words are negative
+                          
+02233    2233 3  1,2042 0                CAF      NEG0           ; +0, change to -0 and we're done
+02234    2234 5  0,0155 0                TS       MPAC+2         
+02235    2235 0  0,0412 0                TC       MATH_Q         
+                          
+02236    2236 3  1,2262 0                CAF      TPA_MPAC1      ; borrow from MPAC+1 to correct MPAC+2
+02237    2237 0  1,2263 1                TC       TPA_FIXM       
+02240    2240 0  0,0412 0                TC       MATH_Q         
+                          
+                          ; MPAC and MPAC+1 were both zero, so we still don't know the sign. 
+                          ; Check MPAC+2.
+                          
+                          TPA_SGN2       EQU      *              
+02241    2241 1  0,0155 1                CCS      MPAC+2         
+02242    2242 0  1,2246 0                TC       TPA_P2         ; >0, sign is +
+02243    2243 0  1,2252 0                TC       TPA_P3         ; +0, number is all zeros
+02244    2244 0  1,2250 1                TC       TPA_M2         ; <0, sign is -
+02245    2245 0  1,2252 0                TC       TPA_P3         ; -0, number is all zeros
+                          
+02246    2246 3  1,2045 1 TPA_P2         CAF      ZERO           
+02247    2247 0  1,2254 0                TC       *+5            ; set MPAC, MPAC+1 to +0
+                          
+02250    2250 3  1,2042 0 TPA_M2         CAF      NEG0           ; set MPAC, MPAC+1 to -0
+02251    2251 0  1,2254 0                TC       *+3            
+                          
+02252    2252 3  1,2045 1 TPA_P3         CAF      ZERO           
+02253    2253 5  0,0155 0                TS       MPAC+2         ; set MPAC, MPAC+1, MPAC+2 to +0
+                          
+02254    2254 5  0,0154 1                TS       MPAC+1         
+02255    2255 5  0,0153 0                TS       MPAC           
+02256    2256 0  0,0412 0                TC       MATH_Q         
+                          
+                          
+                          
+02257    2257     37777 1 MAXPOS         DS       %37777         ; largest non-overflow pos number
+02260    2260     40000 0 MAXNEG         DS       %40000         ; largest non-overflow neg number
+                          
+02261    2261     00153 0 TPA_MPAC0      DS       MPAC           
+02262    2262     00154 1 TPA_MPAC1      DS       MPAC+1         
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; TPA_FIXM
+                          ; Reconcile the signs in a double precision word. The most significant word
+                          ; is in C(A), the lesser word in C(A+1). Reconcilliation occurs by borrowing
+                          ; from C(A) and adding the borrowed amount to C(A+1). C(A) is assumed to be
+                          ; negative non-zero number and C(A+1) positive non-zero. The reconciliation
+                          ; makes both numbers negative.
+                          ; 
+                          ; This is part of my implementation of TPAGREE.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          TPA_FIXM       EQU      *              
+02263    2263 5  0,0411 0                TS       ADDRWD1        
+                          
+02264    2264 2  0,0411 1                INDEX    ADDRWD1        
+02265    2265 4  0,0000 0                CS       0              ; borrow from 1st word
+02266    2266 1  0,0000 0                CCS      A              
+02267    2267 4  0,0000 0                COM                     
+02270    2270 2  0,0411 1                INDEX    ADDRWD1        
+02271    2271 5  0,0000 1                TS       0              
+                          
+02272    2272 3  1,2260 1                CAF      MAXNEG         
+02273    2273 6  1,2043 1                AD       NEG1           ; create negative overflow
+02274    2274 2  0,0411 1                INDEX    ADDRWD1        
+02275    2275 6  0,0001 0                AD       1              ; correct 2nd word, changes sign
+02276    2276 2  0,0411 1                INDEX    ADDRWD1        
+02277    2277 5  0,0001 0                TS       1              
+02300    2300 0  0,0001 0                TC       Q              
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; TPA_FIXP
+                          ; Reconcile the signs in a double precision word. The most significant word
+                          ; is in C(A), the lesser word in C(A+1). Reconcilliation occurs by borrowing
+                          ; from C(A) and adding the borrowed amount to C(A+1). C(A) is assumed to be
+                          ; positive non-zero number and C(A+1) negative non-zero. The reconciliation
+                          ; makes both numbers positive.
+                          ; 
+                          ; This is part of my implementation of TPAGREE.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          TPA_FIXP       EQU      *              
+02301    2301 5  0,0411 0                TS       ADDRWD1        
+                          
+02302    2302 2  0,0411 1                INDEX    ADDRWD1        
+02303    2303 1  0,0000 0                CCS      0              ; borrow from 1st word
+02304    2304 2  0,0411 1                INDEX    ADDRWD1        
+02305    2305 5  0,0000 1                TS       0              
+                          
+02306    2306 3  1,2257 0                CAF      MAXPOS         
+02307    2307 6  1,2046 1                AD       ONE            ; create positive overflow
+02310    2310 2  0,0411 1                INDEX    ADDRWD1        
+02311    2311 6  0,0001 0                AD       1              ; correct 2nd word, changes sign
+02312    2312 2  0,0411 1                INDEX    ADDRWD1        
+02313    2313 5  0,0001 0                TS       1              
+02314    2314 0  0,0001 0                TC       Q              
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; SHORTMP -- MULTIPLY DOUBLE WORD BY A SINGLE WORD
+                          ; Multiply C(MPAC, MPAC+1) by the contents of A. Put the product in MPAC,
+                          ; MPAC+1, MPAC+2.
+                          ; 
+                          ; PRSHRTMP -- MULTIPLY DOUBLE WORD BY A SINGLE WORD
+                          ; The COLOSSUS version of SHORTMP apparently fails to give -0 when C(A)= -0.
+                          ; This function corrects for that case. Since my version of SHORTMP seems
+                          ; to give the desired result, I just call SHORTMP.
+                          ; 
+                          ; These aren't included in my partial COLOSSUS listing, so I had to invent
+                          ; my own version.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          PRSHTMP        EQU      SHORTMP        
+                          
+                          SHORTMP        EQU      *              
+02315    2315 5  0,0406 0                TS       SHORTMP_A      
+                          
+                          ; MPAC+2 = MPAC+1 * A
+                          
+02316    2316 2  0,0000 1                EXTEND                  
+02317    2317 4  0,0154 0                MP       MPAC+1         
+02320    2320 5  0,0407 1                TS       SHORTMP_OVFL   
+02321    2321 3  0,0003 1                XCH      LP             
+02322    2322 5  0,0155 0                TS       MPAC+2         
+                          
+                          ; MPAC+1 = (MPAC * A) + overflow
+                          
+02323    2323 3  0,0406 0                XCH      SHORTMP_A      
+02324    2324 2  0,0000 1                EXTEND                  
+02325    2325 4  0,0153 1                MP       MPAC           
+02326    2326 5  0,0410 1                TS       SHORTMP_OVFH   
+02327    2327 3  0,0003 1                XCH      LP             
+02330    2330 6  0,0407 1                AD       SHORTMP_OVFL   
+02331    2331 5  0,0154 1                TS       MPAC+1         ; skip on overflow
+02332    2332 3  1,2045 1                CAF      ZERO           ; otherwise, make interword carry=0
+                          
+                          ; MPAC = overflow
+                          
+02333    2333 6  0,0410 1                AD       SHORTMP_OVFH   
+02334    2334 5  0,0153 0                TS       MPAC           
+                          
+02335    2335 0  0,0001 0                TC       Q              ; return
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; DMP -- DOUBLE PRECISION MULTIPLY
+                          ; Multiply val, val+1 with C(MPAC, MPAC+1). 'ADDRWD1' contains the
+                          ; address of 'val'. The product appears in MPAC, MPAC+1, MPAC+2
+                          ; 
+                          ; This isn't included in my partial COLOSSUS listing, but is taken from
+                          ; the double precision math examples in R-393.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          DMP            EQU      *              
+02336    2336 2  0,0001 1                INDEX    Q              
+02337    2337 3  0,0000 1                CAF      0              
+02340    2340 6  2,5777 0                AD       EXTENDER       
+02341    2341 5  0,0411 0                TS       ADDRWD1        
+                          
+02342    2342 3  0,0154 1                XCH      MPAC+1         
+02343    2343 5  0,0034 0                TS       OVCTR          
+02344    2344 2  0,0411 1                INDEX    ADDRWD1        
+02345    2345 4  0,0001 1                MP       1              
+02346    2346 3  0,0034 0                XCH      OVCTR          
+                          
+02347    2347 2  0,0411 1                INDEX    ADDRWD1        
+02350    2350 4  0,0000 0                MP       0              
+02351    2351 3  0,0034 0                XCH      OVCTR          
+02352    2352 6  0,0003 1                AD       LP             
+02353    2353 3  0,0153 0                XCH      MPAC           
+02354    2354 5  0,0155 0                TS       MPAC+2         
+02355    2355 2  0,0411 1                INDEX    ADDRWD1        
+02356    2356 4  0,0001 1                MP       1              
+02357    2357 3  0,0034 0                XCH      OVCTR          
+02360    2360 3  0,0153 0                XCH      MPAC           
+02361    2361 6  0,0003 1                AD       LP             
+02362    2362 3  0,0155 0                XCH      MPAC+2         
+                          
+02363    2363 2  0,0411 1                INDEX    ADDRWD1        
+02364    2364 4  0,0000 0                MP       0              
+02365    2365 3  0,0034 0                XCH      OVCTR          
+02366    2366 6  0,0153 0                AD       MPAC           
+02367    2367 6  0,0003 1                AD       LP             
+02370    2370 3  0,0154 1                XCH      MPAC+1         
+02371    2371 3  0,0034 0                XCH      OVCTR          
+02372    2372 5  0,0153 0                TS       MPAC           
+                          
+02373    2373 3  0,0001 0                XCH      Q              ; skip next word on return
+02374    2374 6  1,2046 1                AD       ONE            
+02375    2375 5  0,0001 0                TS       Q              
+02376    2376 0  0,0001 0                TC       Q              
+                          
+                          
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; TEST DATA
+                          ;-------------------------------------------------------------------------- 
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+BANK0          000057   FLAGWRD5       000057   ITEMP1         000060   
+WAITEXIT       000060   EXECTEM1       000060   ITEMP2         000061   
+WAITBANK       000061   EXECTEM2       000061   ITEMP3         000062   
+RUPTSTOR       000062   WAITADR        000062   NEWPRIO        000062   
+ITEMP4         000063   LOCCTR         000063   WAITTEMP       000063   
+ITEMP5         000064   NEWLOC         000064   ITEMP6         000065   
+NEWLOCP1       000065   NEWJOB         000066   RUPTREG1       000067   
+RUPTREG2       000070   RUPTREG3       000071   RUPTREG4       000072   
+KEYTEMP1       000072   DSRUPTEM       000072   STATE          000073   
+FLAGFILL       000107   EMDOT          000107   STATEXIT       000111   
+INTB15P        000113   DSEXIT         000113   EXITEM         000113   
+BLANKRET       000113   INTBIT15       000114   WRDRET         000114   
+WDRET          000114   DECRET         000114   _2122REG       000114   
+ADDRWD         000115   POLISH         000116   UPDATRET       000116   
+CHAR           000116   ERCNT          000116   DECOUNT        000116   
+FIXLOC         000117   OVFIND         000120   VBUF           000121   
+SGNON          000121   NOUNTEM        000121   DISTEM         000121   
+DECTEM         000121   SGNOFF         000122   MVTEMP         000122   
+SFTEMP1        000122   HITEMIN        000122   CODE           000123   
+SFTEMP2        000123   LOWTEMIN       000123   MIXTEMP        000124   
+SIGNRET        000124   BUF            000127   BUF2           000132   
+INDEXLOC       000127   SWWORD         000127   SWBIT          000130   
+MPTEMP         000134   DMPNTEMP       000134   DOTINC         000135   
+DVSIGN         000135   ESCAPE         000135   ENTRET         000135   
+DOTRET         000136   DVNORMCT       000136   ESCAPE2        000136   
+WDCNT          000136   INREL          000136   MATINC         000137   
+MAXDVSW        000137   POLYCNT        000137   DSPMMTEM       000137   
+MIXBR          000137   TEM1           000140   POLYRET        000140   
+DSREL          000140   TEM2           000141   DSMAG          000141   
+IDADDTEM       000141   TEM3           000142   COUNT          000142   
+TEM4           000143   LSTPTR         000143   RELRET         000143   
+FREERET        000143   DSPWDRET       000143   SEPSCRET       000143   
+SEPMNRET       000143   TEM5           000144   NOUNADD        000144   
+NNADTEM        000145   NNTYPTEM       000146   IDAD1TEM       000147   
+IDAD2TEM       000150   IDAD3TEM       000151   RUTMXTEM       000152   
+DEXDEX         000141   DEX1           000142   DEX2           000143   
+RTNSAVER       000144   TERM1TMP       000132   MPAC           000153   
+MODE           000162   LOC            000163   BANKSET        000164   
+PUSHLOC        000165   PRIORITY       000166   RESTREG        000277   
+NVWORD         000300   MARXNV         000301   NVSAVE         000302   
+CADRFLSH       000303   CADRMARK       000304   TEMPFLSH       000305   
+FAILREG        000306   MINDEX         000311   MMNUMBER       000312   
+DSPCNT         000313   DSPCOUNT       000314   DECBRNCH       000315   
+VERBREG        000316   NOUNREG        000317   XREG           000320   
+YREG           000321   ZREG           000322   XREGLP         000323   
+YREGLP         000324   HITEMOUT       000324   ZREGLP         000325   
+LOTEMOUT       000325   MODREG         000326   DSPLOCK        000327   
+REQRET         000330   LOADSTAT       000331   CLPASS         000332   
+NOUT           000333   NOUNCADR       000334   MONSAVE        000335   
+MONSAVE1       000336   MONSAVE2       000337   DSPTAB         000340   
+NVQTEM         000354   NVBNKTEM       000355   VERBSAVE       000356   
+CADRSTOR       000357   DSPLIST        000360   EXTVRACT       000361   
+DSPTEM1        000362   DSPTEM2        000365   DSPTEMX        000365   
+NORMTEM1       000362   OPTIONX        000365   DSRUPTSW       000370   
+T4RET          000371   DSPOUTRET      000372   DK_IN_saveQ    000373   
+LXCH_LPRET     000374   LXCH_A         000375   DPTEST_A       000376   
+DPTEST_Q       000377   REQ_Q          000400   SETNCADR_Q     000401   
+ALLDC_OC_Q     000402   SFRUTMIX_L     000403   SFCONUM_L      000404   
+GTSF_RET       000405   SHORTMP_A      000406   SHORTMP_OVFL   000407   
+SHORTMP_OVFH   000410   ADDRWD1        000411   MATH_Q         000412   
+KEYRET         000413   KEY_IN         000414   SAVEQ          000415   
+BJBANK         000416   BJRET          000417   PJBANK         000420   
+PJRET          000421   PJA            000422   BCBANK         000423   
+BCRET          000424   BCA            000425   DCBANK         000426   
+DCRET          000427   EXTENDER       005777   GOPROG         002000   
+T3RUPT         002004   ERRUPT         002010   DSRUPT         002014   
+KEYRUPT        002020   UPRUPT         002024   endRUPT        002030   
+goT3           002034   goER           002035   goDS           002036   
+goKEY          002037   goUP           002040   ofbit          002041   
+NEG0           002042   NEG1           002043   NEG2           002044   
+ZERO           002045   ONE            002046   TWO            002047   
+THREE          002050   FOUR           002051   FIVE           002052   
+SIX            002053   SEVEN          002054   TEN            002055   
+BIT1           002056   BIT5           002057   BIT7           002060   
+BIT11          002061   BIT12          002062   BIT14          002063   
+BIT15          002064   bankAddr       002065   lowAddr        002066   
+OCT1400        002067   NOUTCON        002070   VAL            002071   
+VAL1           002072   VAL2           002073   P1             002074   
+P0             002075   PHIGH          002076   M1             002077   
+M0             002100   MHIGH          002101   goMAIN         002102   
+imdone         002111   TPAGREE        002112   TPA_SGN0       002114   
+TPA_P0         002121   TPA_PZ0        002131   TPA_PZ0FIX     002142   
+TPA_M0         002152   TPA_MZ0        002162   TPA_MZ0FIX     002173   
+TPA_SGN1       002203   TPA_P1         002210   TPA_M1         002224   
+TPA_SGN2       002241   TPA_P2         002246   TPA_M2         002250   
+TPA_P3         002252   MAXPOS         002257   MAXNEG         002260   
+TPA_MPAC0      002261   TPA_MPAC1      002262   TPA_FIXM       002263   
+TPA_FIXP       002301   PRSHTMP        000000   SHORTMP        002315   
+DMP            002336   ARUPT          000026   Q              000001   
+QRUPT          000027   A              000000   LP             000003   
+OVCTR          000034   

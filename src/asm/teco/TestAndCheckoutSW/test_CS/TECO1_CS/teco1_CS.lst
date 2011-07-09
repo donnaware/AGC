@@ -1,0 +1,197 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO1_CS (file:teco1_CS.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		9/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests basic instructions: CS.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          START          EQU      %00            
+                          
+                          CStst          EQU      %05            ; CS check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2001 1                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02001    2001 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02002    2002 0  1,2011 0                TCR      begin          
+                          
+                          ; Test basic instructions.
+02003    2003 0  1,2021 0                TCR      chkCS          
+                          
+                          ; Passed all tests.
+02004    2004 0  1,2061 1                TCR      finish         
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02007    2007 0  1,2007 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02010    2010     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST CS INSTRUCTION SUBROUTINE
+                          ; L:	CS	K
+                          ; Verifies the following:
+                          ; - Set C(A) = -C(K)
+                          ; - Take next instruction from L+1
+                          
+02014    2014     00005 1 CScode         DS       CStst          ; code for this test
+                          ; test values (K)
+02015    2015     00000 1 CSkP0          DS       +0             
+02016    2016     77777 0 CSkM0          DS       -0             
+02017    2017     52525 1 CSkalt1        DS       %52525         ; 1's C of CSkalt2
+02020    2020     25252 0 CSkalt2        DS       %25252         ; 1's C of CSkalt1
+                          
+                          chkCS          EQU      *              
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0101 1                TS       savQ           ; save return address
+                          
+02023    2023 3  1,2014 0                CAF      CScode         
+02024    2024 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; clear and subtract +0
+02025    2025 4  1,2015 0                CS       CSkP0          ; load 1's compliment of K into A
+02026    2026 6  1,2015 1                AD       CSkP0          ; put (-A) + expected value in A
+02027    2027 1  0,0000 0                CCS      A              ; compare
+02030    2030 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02031    2031 0  1,2005 0                TC       fail           ; +0
+02032    2032 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; clear and subtract -0
+02033    2033 4  1,2016 0                CS       CSkM0          ; load 1's compliment of K into A
+02034    2034 6  1,2016 1                AD       CSkM0          ; put (-A) + expected value in A
+02035    2035 1  0,0000 0                CCS      A              ; compare
+02036    2036 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02037    2037 0  1,2005 0                TC       fail           ; +0
+02040    2040 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; clear and subtract alternating bit pattern %52525
+02041    2041 4  1,2017 1                CS       CSkalt1        ; load 1's compliment of K into A
+02042    2042 6  1,2017 0                AD       CSkalt1        ; put (-A) + expected value in A
+02043    2043 1  0,0000 0                CCS      A              ; compare
+02044    2044 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02045    2045 0  1,2005 0                TC       fail           ; +0
+02046    2046 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; clear and subtract alternating bit pattern %25252
+02047    2047 4  1,2020 0                CS       CSkalt2        ; load 1's compliment of K into A
+02050    2050 6  1,2020 1                AD       CSkalt2        ; put (-A) + expected value in A
+02051    2051 1  0,0000 0                CCS      A              ; compare
+02052    2052 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02053    2053 0  1,2005 0                TC       fail           ; +0
+02054    2054 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; passed the test
+02055    2055 3  0,0101 1                XCH      savQ           
+02056    2056 5  0,0001 0                TS       Q              ; restore return address
+02057    2057 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02060    2060     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02061    2061 3  1,2060 0                CAF      PASScode       
+02062    2062 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02063    2063 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   CStst          000005   PASS           012345   
+OVFCNTR        000034   curtest        000100   savQ           000101   
+GOPROG         002000   goMAIN         002001   fail           002005   
+end            002007   STRTcode       002010   begin          002011   
+CScode         002014   CSkP0          002015   CSkM0          002016   
+CSkalt1        002017   CSkalt2        002020   chkCS          002021   
+PASScode       002060   finish         002061   Q              000001   
+A              000000   

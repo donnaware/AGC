@@ -1,0 +1,146 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; AGC Programming Style example (file:loop2.asm)
+                          ; 
+                          ; Test Results:
+                          ; 
+                          ;	xval	A	(A=after CCS)
+                          ;	----	- 
+                          ;	5	4 
+                          ;	4	3 
+                          ;	3	2 
+                          ;	2	1 
+                          ;	1	0 
+                          ;	0	0 
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                                         ORG      %100           
+00100    0100     00000 1 xval           DS       0              ; somewhere in eraseable memory
+                          ; ----------------------------------------------------------
+                                         ORG      GOPROG         
+                          
+                          ; Decrementing loop:
+                          ;	- always executes at least once (tests at end of loop)
+                          ;	- loops 'xstart' times; decrements xval
+                          
+02000    2000 3  1,2034 1                XCH      xstart         
+02001    2001 5  0,0100 0                TS       xval           
+                          
+                          goback         EQU      *              
+02002    2002 1  0,0100 1                CCS      xval           
+02003    2003 0  1,2005 0                TC       inloop         
+02004    2004 0  1,2033 0                TC       done           
+                          inloop         EQU      *              
+02005    2005 5  0,0100 0                TS       xval           
+                          
+                          ; do something useful (OK to change register A)
+02006    2006 3  1,2035 0                XCH      REL00          
+02007    2007 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02010    2010 3  1,2036 0                XCH      REL01          
+02011    2011 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02012    2012 3  1,2037 1                XCH      REL02          
+02013    2013 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02014    2014 3  1,2040 1                XCH      REL03          
+02015    2015 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02016    2016 3  1,2041 0                XCH      REL04          
+02017    2017 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02020    2020 3  1,2042 0                XCH      REL05          
+02021    2021 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02022    2022 3  1,2043 1                XCH      REL06          
+02023    2023 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02024    2024 3  1,2044 0                XCH      REL07          
+02025    2025 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02026    2026 3  1,2045 1                XCH      REL08          
+02027    2027 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+02030    2030 3  1,2046 1                XCH      REL09          
+02031    2031 5  0,0010 0                TS       OUT0           ; was EXTEND/WRITE OUT0 in block II
+                          
+                          
+                          
+02032    2032 0  1,2002 1                TC       goback         
+                          ; ----------------------------------------------
+                          
+                          done           EQU      *              
+02033    2033 0  1,2033 0                TC       done           
+                          
+02034    2034     00005 1 xstart         DS       5              ; somewhere in fixed memory
+                          
+                          ;                      1 1111 1 00000 00000
+                          ;                      5 4321 0 98765 43210
+                          ;                      - ---- - ----- -----
+02035    2035     05265 0 REL00          DS       $0AB5          ; 0 0001 0 10101 10101    10   
+02036    2036     11243 1 REL01          DS       $12A3          ; 0 0010 0 10101 00011     1
+02037    2037     15251 0 REL02          DS       $1AA9          ; 0 0011 0 10101 11001
+02040    2040     21273 1 REL03          DS       $22BB          ; 0 0100 0 10101 11011
+02041    2041     25257 0 REL04          DS       $2AAF          ; 0 0101 0 10101 01111
+02042    2042     31276 0 REL05          DS       $32BE          ; 0 0110 0 10101 11110
+02043    2043     35274 0 REL06          DS       $3ABC          ; 0 0111 0 10101 11100
+02044    2044     41263 0 REL07          DS       $42B3          ; 0 1000 0 10101 10011
+02045    2045     45275 0 REL08          DS       $4ABD          ; 0 1001 0 10101 11101
+02046    2046     51277 1 REL09          DS       $52BF          ; 0 1010 0 10101 11111
+02047    2047     55240 1 REL0A          DS       $5AA0          ; 0 1011 0 10101 00000
+02050    2050     61240 0 REL0B          DS       $62A0          ; 0 1100 0 10101 00000
+                          
+                          
+                          
+02051    2051     04025 1 RELTAB0        DS       %04025         ; 0 0001 0 10101 10101    
+02052    2052     10003 0 RELTAB1        DS       %10003         ; 0 0010 0 10101 00011
+02053    2053     14031 0 RELTAB2        DS       %14031         ; 0 0011 0 10101 11001
+02054    2054     20033 0 RELTAB3        DS       %20033         ; 0 0100 0 10101 11011
+02055    2055     24017 1 RELTAB4        DS       %24017         ; 0 0101 0 10101 01111
+02056    2056     30036 1 RELTAB5        DS       %30036         ; 0 0110 0 10101 11110
+02057    2057     34034 1 RELTAB6        DS       %34034         ; 0 0111 0 10101 11100
+02060    2060     40023 1 RELTAB7        DS       %40023         ; 0 1000 0 10101 10011
+02061    2061     44035 1 RELTAB8        DS       %44035         ; 0 1001 0 10101 11101
+02062    2062     50037 0 RELTAB9        DS       %50037         ; 0 1010 0 10101 11111
+02063    2063     54000 0 RELTABA        DS       %54000         ; 0 1011 0 10101 00000
+02064    2064     60000 1 RELTABB        DS       %60000         ; 0 1100 0 10101 00000
+                          
+                          
+                          
+                          ; Bits   Bit     Bits   Bits 
+                          ; 15-12  11      10-6   5-1
+                          ; RLYWD  DSPC    DSPH   DSPL
+                          ; -----  ------  ----   -----
+                          ; 1011           MD1    MD2
+                          ; 1010   FLASH   VD1    VD2
+                          ; 1001           ND1    ND2
+                          ; 1000   UPACT          R1D1
+                          ; 0111   +R1S    R1D2   R1D3
+                          ; 0110   -R1S    R1D4   R1D5
+                          ; 0101   +R2S    R2D1   R2D2
+                          ; 0100   -R2S    R2D3   R2D4
+                          ; 0011           R2D5   R3D1
+                          ; 0010   +R3S    R3D2   R3D3
+                          ; 0001   -R3S    R3D4   R3D5
+                          
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+EXTENDER       005777   xval           000100   GOPROG         002000   
+goback         002002   inloop         002005   done           002033   
+xstart         002034   REL00          002035   REL01          002036   
+REL02          002037   REL03          002040   REL04          002041   
+REL05          002042   REL06          002043   REL07          002044   
+REL08          002045   REL09          002046   REL0A          002047   
+REL0B          002050   RELTAB0        002051   RELTAB1        002052   
+RELTAB2        002053   RELTAB3        002054   RELTAB4        002055   
+RELTAB5        002056   RELTAB6        002057   RELTAB7        002060   
+RELTAB8        002061   RELTAB9        002062   RELTABA        002063   
+RELTABB        002064   OUT0           000010   

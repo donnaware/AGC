@@ -1,0 +1,20 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TC 1 (file:tc1.asm)
+                          ; test for TC instruction
+                          
+                                         ORG      GOPROG         
+                          
+                          ; initialize everything prior to looping.
+                          ; 
+                          
+02000    2000 0  1,2000 0 end            TC       end            ; finished, TC trap
+                          
+
+Assembly complete. Errors = 0
+
+Symbol table:
+GOPROG         002000   end            002000   

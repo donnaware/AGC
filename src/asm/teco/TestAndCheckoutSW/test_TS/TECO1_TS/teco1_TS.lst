@@ -1,0 +1,257 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TECO1_TS (file:teco1_TS.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		9/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests basic instructions: TS.
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ; 
+                          ; ERRATA:
+                          ; - Written for the AGC4R assembler. The assembler directives and syntax
+                          ; differ somewhat from the original AGC assembler.
+                          ; - The tests attempt to check all threads, but are not exhaustive.
+                          ; 
+                          ; SOURCES:
+                          ; Information on the Block 1 architecture: instruction set, instruction
+                          ; sequences, registers, register transfers, control pulses, memory and 
+                          ; memory addressing, I/O assignments, interrupts, and involuntary counters
+                          ; was obtained from:
+                          ; 
+                          ;	A. Hopkins, R. Alonso, and H. Blair-Smith, "Logical Description 
+                          ;		for the Apollo Guidance Computer (AGC4)", R-393, 
+                          ;		MIT Instrumentation Laboratory, Cambridge, MA, Mar. 1963.
+                          ; 
+                          ; Supplementary information was obtained from:
+                          ; 
+                          ;	R. Alonso, J. H. Laning, Jr. and H. Blair-Smith, "Preliminary 
+                          ;		MOD 3C Programmer's Manual", E-1077, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Nov. 1961.
+                          ; 
+                          ;	B. I. Savage and A. Drake, "AGC4 Basic Training Manual, Volume I", 
+                          ;		E-2052, MIT Instrumentation Laboratory, Cambridge, 
+                          ;		MA, Jan. 1967.
+                          ; 
+                          ;	E. C. Hall, "MIT's Role in Project Apollo, Volume III, Computer 
+                          ;		Subsystem", R-700, MIT Charles Stark Draper Laboratory, 
+                          ;		Cambridge, MA, Aug. 1972.
+                          ; 
+                          ;	A. Hopkins, "Guidance Computer Design, Part VI", source unknown.
+                          ; 
+                          ;	A. I. Green and J. J. Rocchio, "Keyboard and Display System Program 
+                          ;		for AGC (Program Sunrise)", E-1574, MIT Instrumentation 
+                          ;		Laboratory, Cambridge, MA, Aug. 1964.
+                          ; 
+                          ;	E, C. Hall, "Journey to the Moon: The History of the Apollo 
+                          ;		Guidance Computer", AIAA, Reston VA, 1996.
+                          ; 
+                          
+                          START          EQU      %00            
+                          
+                          TStst          EQU      %06            ; TS check failed
+                          
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                          
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+                          
+                          ; TS test
+00102    0102     77777 0 TSk            DS       -0             
+                          
+                          ; ----------------------------------------------
+                          ; ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2001 1                TC       goMAIN         
+                          
+                          ; ----------------------------------------------
+                          ; FIXED MEMORY -- SHARED DATA SEGMENT
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          goMAIN         EQU      *              
+02001    2001 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+02002    2002 0  1,2011 0                TCR      begin          
+                          
+                          ; Test basic instructions.
+02003    2003 0  1,2023 1                TCR      chkTS          
+                          
+                          ; Passed all tests.
+02004    2004 0  1,2135 1                TCR      finish         
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          
+                          end            EQU      *              
+02007    2007 0  1,2007 1                TC       end            ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          
+02010    2010     00000 1 STRTcode       DS       START          
+                          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST TS INSTRUCTION SUBROUTINE
+                          ; L;	TS 	K
+                          ; Verifies the following:
+                          ; - Set C(K) = b(A)
+                          ; - If b(A) contains no overflow, 
+                          ; -- C(A) = b(A); take next instruction from L+1
+                          ; - If b(A) has positive overflow, C(A) = 000001; 
+                          ; -- take next instruction from L+2
+                          ; - If b(A) has negative overflow, C(A) = 177776; 
+                          ; -- take next instruction from L+2
+                          
+02014    2014     00006 1 TScode         DS       TStst          ; code for this test
+02015    2015     00001 0 TSone          DS       +1             
+02016    2016     00000 1 TSzero         DS       +0             
+02017    2017     77777 0 TSmzero        DS       -0             
+02020    2020     77776 1 TSmone         DS       -1             
+02021    2021     37777 1 TSkP1          DS       %37777         ; TEST1: largest positive number w/no overflow
+02022    2022     40000 0 TSkM1          DS       %40000         ; TEST2: largest negative number w/no overflow
+                          
+                          chkTS          EQU      *              
+02023    2023 3  0,0001 0                XCH      Q              
+02024    2024 5  0,0101 1                TS       savQ           ; save return address
+                          
+02025    2025 3  1,2014 0                CAF      TScode         
+02026    2026 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; initialize TSk to -0
+02027    2027 3  1,2017 0                CAF      TSmzero        
+02030    2030 3  0,0102 1                XCH      TSk            
+                          
+                          ; TEST 1: store positive number, no overflow
+02031    2031 3  1,2021 0                CAF      TSkP1          
+02032    2032 5  0,0102 1                TS       TSk            
+02033    2033 0  1,2035 0                TC       *+2            ; no overflow
+02034    2034 0  1,2005 0                TC       fail           ; overflow
+                          ; verify C(A) = b(A)
+02035    2035 4  0,0000 0                COM                     ; get -A
+02036    2036 6  1,2021 0                AD       TSkP1          ; put (-A) + expected value in A
+02037    2037 1  0,0000 0                CCS      A              ; compare
+02040    2040 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02041    2041 0  1,2005 0                TC       fail           ; +0
+02042    2042 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = b(A)
+02043    2043 4  1,2021 1                CS       TSkP1          ; get -expected value
+02044    2044 6  0,0102 1                AD       TSk            ; put (-expected value) + C(K) into A
+02045    2045 1  0,0000 0                CCS      A              ; compare
+02046    2046 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02047    2047 0  1,2005 0                TC       fail           ; +0
+02050    2050 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST 2: store negative number, no overflow
+02051    2051 3  1,2022 0                CAF      TSkM1          
+02052    2052 5  0,0102 1                TS       TSk            
+02053    2053 0  1,2055 0                TC       *+2            ; no overflow
+02054    2054 0  1,2005 0                TC       fail           ; overflow
+                          ; verify C(A) = b(A)
+02055    2055 4  0,0000 0                COM                     ; get -A
+02056    2056 6  1,2022 0                AD       TSkM1          ; put (-A) + expected value in A
+02057    2057 1  0,0000 0                CCS      A              ; compare
+02060    2060 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02061    2061 0  1,2005 0                TC       fail           ; +0
+02062    2062 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = b(A)
+02063    2063 4  1,2022 1                CS       TSkM1          ; get -expected value
+02064    2064 6  0,0102 1                AD       TSk            ; put (-expected value) + C(K) into A
+02065    2065 1  0,0000 0                CCS      A              ; compare
+02066    2066 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02067    2067 0  1,2005 0                TC       fail           ; +0
+02070    2070 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST 3: store positive number, overflow
+02071    2071 3  1,2021 0                CAF      TSkP1          ; get largest positive number
+02072    2072 6  1,2015 1                AD       TSone          ; make it overflow; A = negative overflow
+02073    2073 5  0,0102 1                TS       TSk            ; store the positive overflow
+02074    2074 0  1,2005 0                TC       fail           ; no overflow
+                          ; verify C(A) = 000001
+02075    2075 4  0,0000 0                COM                     ; get -A
+02076    2076 6  1,2015 1                AD       TSone          ; put (-A) + expected value in A
+02077    2077 1  0,0000 0                CCS      A              ; compare
+02100    2100 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02101    2101 0  1,2005 0                TC       fail           ; +0
+02102    2102 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = positive overflow
+02103    2103 4  1,2016 0                CS       TSzero         ; get -expected value
+02104    2104 6  0,0102 1                AD       TSk            ; put (-expected value) + C(K) into A
+02105    2105 1  0,0000 0                CCS      A              ; compare
+02106    2106 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02107    2107 0  1,2005 0                TC       fail           ; +0
+02110    2110 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; TEST 4: store negative number, overflow
+02111    2111 3  1,2022 0                CAF      TSkM1          ; get largest negative number
+02112    2112 6  1,2020 1                AD       TSmone         ; make it overflow; A = negative overflow
+02113    2113 5  0,0102 1                TS       TSk            ; store the negative overflow
+02114    2114 0  1,2005 0                TC       fail           ; no overflow
+                          ; verify C(A) = 177776
+02115    2115 4  0,0000 0                COM                     ; get -A
+02116    2116 6  1,2020 1                AD       TSmone         ; put (-A) + expected value in A
+02117    2117 1  0,0000 0                CCS      A              ; compare
+02120    2120 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02121    2121 0  1,2005 0                TC       fail           ; +0
+02122    2122 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          ; verify C(K) = negative overflow
+02123    2123 4  1,2017 1                CS       TSmzero        ; get -expected value
+02124    2124 6  0,0102 1                AD       TSk            ; put (-expected value) + C(K) into A
+02125    2125 1  0,0000 0                CCS      A              ; compare
+02126    2126 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02127    2127 0  1,2005 0                TC       fail           ; +0
+02130    2130 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+02131    2131 3  0,0101 1                XCH      savQ           
+02132    2132 5  0,0001 0                TS       Q              ; restore return address
+02133    2133 0  0,0000 0                RETURN                  
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          
+02134    2134     12345 0 PASScode       DS       PASS           
+                          
+                          finish         EQU      *              
+02135    2135 3  1,2134 0                CAF      PASScode       
+02136    2136 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02137    2137 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   TStst          000006   PASS           012345   
+OVFCNTR        000034   curtest        000100   savQ           000101   
+TSk            000102   GOPROG         002000   goMAIN         002001   
+fail           002005   end            002007   STRTcode       002010   
+begin          002011   TScode         002014   TSone          002015   
+TSzero         002016   TSmzero        002017   TSmone         002020   
+TSkP1          002021   TSkM1          002022   chkTS          002023   
+PASScode       002134   finish         002135   Q              000001   
+A              000000   

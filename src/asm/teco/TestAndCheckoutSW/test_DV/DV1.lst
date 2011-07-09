@@ -1,0 +1,80 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;------------------------------------------------------------------------- 
+                          ; DV1 (file: DV1.asm)
+                          ; PURPOSE: Simple test of DV instruction
+                          ;; OPERATION: Enters an infinite loop at the end of the test. The A register contains 
+                          ; the result of dividing 2 numbers
+                          ;------------------------------------------------------------------------- 
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM ENTRY POINT:
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         
+                          goMAIN         EQU      *              
+02000    2000 2  0,0000 0                INHINT                  ; disable interrupts
+                          
+                          ; ----------------------------------------------
+                          ; TEST DV INSTRUCTION SUBROUTINE
+                          ; L:	DV	K
+                          ; Verifies the following:
+                          ; - Set C(A) = b(A) / C(K)
+                          ; - Set C(Q) = - abs(remainder)
+                          ; - Set C(LP) > 0 if quotient is positive
+                          ; - Set C(LP) < 0 if quotient is negative
+                          ; - Take next instruction from L+1
+                          ; ----------------------------------------------
+                          
+                          chkDV          EQU      *              
+02001    2001 3  1,2014 0                CAF      div2_00        
+02002    2002 2  0,0000 1                EXTEND                  ; This is an extended instruction
+02003    2003 5  1,2010 1                DV       div1_00        
+                          
+                          ; ----------------------------------------------
+                          ; Trap at end
+                          ; ----------------------------------------------
+                          end            EQU      *              
+02004    2004 0  1,2004 1                TC       end            ; finished, TC trap
+                          ; ----------------------------------------------
+                          
+                          
+                          ; ----------------------------------------------
+                          ; C(A) test values
+                          ; ----------------------------------------------
+02005    2005     00001 0 div1           DS       %00001         ; check #20 (+1/+2)  ; == %20000
+02006    2006     00002 0 div2           DS       %00002         ; check #20 (+1/+2)	; == %20000, R= %77777
+02007    2007     00003 1 div3           DS       %00003         ; check #21 (+1/+3) ; == %12525, r=%77776
+                          
+02010    2010     00000 1 div1_00        DS       %00000         ; check #00 (+0/+0)
+02011    2011     00000 1 div1_01        DS       %00000         ; check #01 (+0/-0)
+02012    2012     77777 0 div1_02        DS       %77777         ; check #02 (-0/+0)
+02013    2013     77777 0 div1_03        DS       %77777         ; check #03 (-0/-0)
+                          
+02014    2014     00000 1 div2_00        DS       %00000         ; check #00 (+0/+0)
+02015    2015     77777 0 div2_01        DS       %77777         ; check #01 (+0/-0)
+02016    2016     00000 1 div2_02        DS       %00000         ; check #02 (-0/+0)
+02017    2017     77777 0 div2_03        DS       %77777         ; check #03 (-0/-0)
+                          
+                          ; ----------------------------------------------
+                          ; Extender code
+                          ; ----------------------------------------------
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          ;------------------------------------------------------------------------- 
+                          ; END OF PROGRAM
+                          ;------------------------------------------------------------------------- 
+
+Assembly complete. Errors = 0
+
+Symbol table:
+OVFCNTR        000034   GOPROG         002000   goMAIN         002000   
+chkDV          002001   end            002004   div1           002005   
+div2           002006   div3           002007   div1_00        002010   
+div1_01        002011   div1_02        002012   div1_03        002013   
+div2_00        002014   div2_01        002015   div2_02        002016   
+div2_03        002017   EXTENDER       005777   

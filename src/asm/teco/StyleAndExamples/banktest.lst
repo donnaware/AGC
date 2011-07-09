@@ -1,0 +1,902 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ; TEST5 (file:test5.asm)
+                          ; 
+                          ; Similar to TEST2, but includes interrupt handlers
+                          ; Initialize a block of memory starting at 'baseadr' and extending for
+                          ; 'initcnt' words.
+                          ; 
+                          ; Exercise the following instructions (incompletely)
+                          ;   TC, CCS, INDEX, XCH, TS, AD
+                          ; 
+                          ; Does not exercise:
+                          ;   CS, MASK, MP, DV, SU
+                          ; 
+                          ; includes a subroutine and interrupt handlers
+                          
+                          
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          
+                                         ORG      %100           ; start of data area
+                          
+                                         INCL     dsky_e.asm     
+                          ;========================================================================== 
+                          ; DSKY erasable memory segment (file:dsky_e.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		12/14/2001
+                          ; 
+                          ; PURPOSE:
+                          ; Eraseable memory variables and structures for the DSKY. See the EXEC
+                          ; source code file for more information.
+                          ; 
+                          ; Adapted from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968.
+                          ;========================================================================== 
+                          
+00100    0100     00000 1 FLAGWRD5       DS       0              
+                          
+                          
+                          ; GENERAL ERASABLE ASSIGNMENTS
+                          ; (COLOSSUS, p. 66)
+                          
+                          
+                          ; interrupt temporary storage pool
+                          ; (ITEMP1 through RUPTREG4)
+                          
+00101    0101     00000 1 ITEMP1         DS       0              
+                          WAITEXIT       EQU      ITEMP1         
+                          EXECTEM1       EQU      ITEMP1         
+                          
+00102    0102     00000 1 ITEMP2         DS       0              
+                          WAITBANK       EQU      ITEMP2         
+                          EXECTEM2       EQU      ITEMP2         
+                          
+00103    0103     00000 1 ITEMP3         DS       0              
+                          RUPTSTOR       EQU      ITEMP3         
+                          WAITADR        EQU      ITEMP3         
+                          NEWPRIO        EQU      ITEMP3         
+                          
+00104    0104     00000 1 ITEMP4         DS       0              
+                          LOCCTR         EQU      ITEMP4         
+                          WAITTEMP       EQU      ITEMP4         
+                          
+00105    0105     00000 1 ITEMP5         DS       0              
+                          NEWLOC         EQU      ITEMP5         
+                          
+00106    0106     00000 1 ITEMP6         DS       0              
+                          NEWLOCP1       EQU      ITEMP6         ; DP address
+                          
+00107    0107     00000 1 NEWJOB         DS       0              ; COLOSSUS: must be at loc 68 due to wiring
+00110    0110     00000 1 RUPTREG1       DS       0              
+00111    0111     00000 1 RUPTREG2       DS       0              
+00112    0112     00000 1 RUPTREG3       DS       0              
+00113    0113     00000 1 RUPTREG4       DS       0              
+                          KEYTEMP1       EQU      RUPTREG4       
+                          DSRUPTEM       EQU      RUPTREG4       
+                          
+                          
+                          ; FLAGWORD reservations
+                          
+                          STATE          EQU      *              ; 12 words
+00114    0114     00000 1                DS       0              
+00115    0115     00000 1                DS       0              
+00116    0116     00000 1                DS       0              
+00117    0117     00000 1                DS       0              
+00120    0120     00000 1                DS       0              
+00121    0121     00000 1                DS       0              
+00122    0122     00000 1                DS       0              
+00123    0123     00000 1                DS       0              
+00124    0124     00000 1                DS       0              
+00125    0125     00000 1                DS       0              
+00126    0126     00000 1                DS       0              
+00127    0127     00000 1                DS       0              
+                          
+                          FLAGFILL       EQU      *              ; space for future flags
+00130    0130     00000 1                DS       0              
+00131    0131     00000 1                DS       0              
+00132    0132     00000 1                DS       0              
+00133    0133     00000 1                DS       0              
+                          
+                          ; pad load for DAPs
+                          ; (COLOSSUS, p. 67)
+                          
+                          EMDOT          EQU      FLAGFILL       
+                          
+                          ; exit for VB3
+                          
+                          STATEXIT       EQU      FLAGFILL+2     
+                          
+                          ; EXEC temporaries which may be used between CCS NEWJOBS.
+                          ; (INTB15P through RUPTMXM)
+                          
+00134    0134     00000 1 INTB15P        DS       0              ; reflects 15th bit of indexable addresses
+                          DSEXIT         EQU      INTB15P        ; return for DSPIN
+                          EXITEM         EQU      INTB15P        ; return for scale factor routine select
+                          BLANKRET       EQU      INTB15P        ; return for 2BLANK
+                          
+00135    0135     00000 1 INTBIT15       DS       0              ; similar to above
+                          WRDRET         EQU      INTBIT15       ; return for 5BLANK
+                          WDRET          EQU      INTBIT15       ; return for DSPWD
+                          DECRET         EQU      INTBIT15       ; return for PUTCOM (dec load)
+                          _2122REG       EQU      INTBIT15       ; temp for CHARIN
+                          
+                          ; The registers between ADDRWD and PRIORITY must stay in the following order
+                          ; for interpretive trace.
+                          
+00136    0136     00000 1 ADDRWD         DS       0              ; 12 bit interpretive operand subaddress
+00137    0137     00000 1 POLISH         DS       0              ; holds CADR made from POLISH address
+                          UPDATRET       EQU      POLISH         ; return for UPDATNN, UPDATVB
+                          CHAR           EQU      POLISH         ; temp for CHARIN
+                          ERCNT          EQU      POLISH         ; counter for error light reset
+                          DECOUNT        EQU      POLISH         ; counter for scaling and display (dec)
+                          
+00140    0140     00000 1 FIXLOC         DS       0              ; work area address
+00141    0141     00000 1 OVFIND         DS       0              ; set non-zero on overflow
+                          
+                          VBUF           EQU      *              ; temporary storage used for vectors
+00142    0142     00000 1                DS       0              
+00143    0143     00000 1                DS       0              
+00144    0144     00000 1                DS       0              
+00145    0145     00000 1                DS       0              
+00146    0146     00000 1                DS       0              
+00147    0147     00000 1                DS       0              
+                          SGNON          EQU      VBUF           ; temp for +,- on
+                          NOUNTEM        EQU      VBUF           ; counter for MIXNOUN fetch
+                          DISTEM         EQU      VBUF           ; counter for octal display verbs
+                          DECTEM         EQU      VBUF           ; counter for fetch (dec display verbs)
+                          
+                          SGNOFF         EQU      VBUF+1         ; temp for +,- off
+                          MVTEMP         EQU      VBUF+1         ; temp for NVSUB
+                          SFTEMP1        EQU      VBUF+1         ; storage for SF const hi part(=SFTEMP2-1)
+                          HITEMIN        EQU      VBUF+1         ; temp for load of hrs, min, sec
+                          ; must = LOWTEMIN-1
+                          
+                          CODE           EQU      VBUF+2         ; for DSPIN
+                          SFTEMP2        EQU      VBUF+2         ; storage for SF const low part(=SFTEMP1+1)
+                          LOWTEMIN       EQU      VBUF+2         ; temp for load of hrs, min, sec
+                          ; must = HITEMIN+1 
+                          
+                          ; (COLOSSUS, p. 68)
+                          
+                          MIXTEMP        EQU      VBUF+3         ; for MIXNOUN data
+                          SIGNRET        EQU      VBUF+3         ; return for +,- on
+                          
+                          ; Also, MIXTEMP+1 = VBUF+4, MIXTEMP+2 = VBUF+5
+                          
+                          BUF            EQU      *              ; temporary scalar storage
+00150    0150     00000 1                DS       0              
+00151    0151     00000 1                DS       0              
+00152    0152     00000 1                DS       0              
+                          
+00153    0153     00000 1 BUF2           DS       0              
+00154    0154     00000 1                DS       0              
+                          
+                          INDEXLOC       EQU      BUF            ; contains address of specified index
+                          SWWORD         EQU      BUF            ; address of switch word
+                          SWBIT          EQU      BUF+1          ; switch bit within switch word
+00155    0155     00000 1 MPTEMP         DS       0              ; temporary used in multiply and shift
+                          DMPNTEMP       EQU      MPTEMP         ; DMPSUB temporary
+00156    0156     00000 1 DOTINC         DS       0              ; component increment for DOT subroutine
+                          DVSIGN         EQU      DOTINC         ; determines sign of DDV result
+                          ESCAPE         EQU      DOTINC         ; used in arcsin/arccos
+                          ENTRET         EQU      DOTINC         ; exit from enter
+                          
+00157    0157     00000 1 DOTRET         DS       0              ; return from DOT subroutine
+                          DVNORMCT       EQU      DOTRET         ; dividend normalization count in DDV
+                          ESCAPE2        EQU      DOTRET         ; alternate arcsin/arccos switch
+                          WDCNT          EQU      DOTRET         ; char counter for DSPWD
+                          INREL          EQU      DOTRET         ; input buffer selector (X,Y,Z REG)
+                          
+00160    0160     00000 1 MATINC         DS       0              ; vector increment in MXV and VXM
+                          MAXDVSW        EQU      MATINC         ; +0 if DP quotient is near one - else -1
+                          POLYCNT        EQU      MATINC         ; polynomial loop counter
+                          DSPMMTEM       EQU      MATINC         ; DSPCOUNT save for DSPMM
+                          MIXBR          EQU      MATINC         ; indicator for mixed or normal noun
+                          
+00161    0161     00000 1 TEM1           DS       0              ; EXEC temp
+                          POLYRET        EQU      TEM1           
+                          DSREL          EQU      TEM1           ; rel address for DSPIN
+                          
+00162    0162     00000 1 TEM2           DS       0              ; EXEC temp
+                          DSMAG          EQU      TEM2           ; magnitude store for DSPIN
+                          IDADDTEM       EQU      TEM2           ; mixnoun indirect address store
+                          
+00163    0163     00000 1 TEM3           DS       0              ; EXEC temp
+                          COUNT          EQU      TEM3           ; for DSPIN
+                          
+00164    0164     00000 1 TEM4           DS       0              ; EXEC temp
+                          LSTPTR         EQU      TEM4           ; list pointer for GRABUSY
+                          RELRET         EQU      TEM4           ; return for RELDSP
+                          FREERET        EQU      TEM4           ; return for FREEDSP
+                          DSPWDRET       EQU      TEM4           ; return for DSPSIGN
+                          SEPSCRET       EQU      TEM4           ; return for SEPSEC
+                          SEPMNRET       EQU      TEM4           ; return for SEPMIN
+                          
+00165    0165     00000 1 TEM5           DS       0              ; EXEC temp
+                          NOUNADD        EQU      TEM5           ; temp storage for noun address
+                          
+                          ; (COLOSSUS, p. 69)
+                          
+00166    0166     00000 1 NNADTEM        DS       0              ; temp for noun address table entry
+00167    0167     00000 1 NNTYPTEM       DS       0              ; temp for noun type table entry
+00170    0170     00000 1 IDAD1TEM       DS       0              ; temp for indir address table entry (MIXNN)
+                          ; must - IDAD2TEM-1, = IDAD3TEM-2
+00171    0171     00000 1 IDAD2TEM       DS       0              ; temp for indir address table entry (MIXNN)
+                          ; must - IDAD2TEM+1, = IDAD3TEM-1
+00172    0172     00000 1 IDAD3TEM       DS       0              ; temp for indir address table entry (MIXNN)
+                          ; must - IDAD1TEM+2, = IDAD2TEM+1
+00173    0173     00000 1 RUTMXTEM       DS       0              ; temp for SF rout table entry (MIXNN only)
+                          
+                          ; AX*SR*T storage
+                          
+                          DEXDEX         EQU      TEM2           ; B(1) tmp
+                          DEX1           EQU      TEM3           ; B(1) tmp
+                          DEX2           EQU      TEM4           ; B(1) tmp
+                          RTNSAVER       EQU      TEM5           ; B(1) tmp
+                          TERM1TMP       EQU      BUF2           ; B(2) tmp
+                          
+                          ; (COLOSSUS, p. 70)
+                          
+                          ; dynamically allocated core sets for jobs (8 sets)
+                          
+                          MPAC           EQU      *              ; multi-purpose accumulator
+00174    0174     00000 1                DS       0              
+00175    0175     00000 1                DS       0              
+00176    0176     00000 1                DS       0              
+00177    0177     00000 1                DS       0              
+00200    0200     00000 1                DS       0              
+00201    0201     00000 1                DS       0              
+00202    0202     00000 1                DS       0              
+                          
+00203    0203     00000 1 MODE           DS       0              ; +1 for TP, +0 for DP, or -1 for vector
+00204    0204     00000 1 LOC            DS       0              ; location associated with job
+00205    0205     00000 1 BANKSET        DS       0              ; usually contains bank setting
+00206    0206     00000 1 PUSHLOC        DS       0              ; word of packed interpretive parameters
+00207    0207     00000 1 PRIORITY       DS       0              ; priority of present job and work area
+                          
+                                         ORG      7@12+MPAC      ; 7 sets (total) of 12 registers each
+                          
+                          
+                          ; (COLOSSUS, p. 72)
+                          ; unswitched for display interface routines
+                          
+00320    0320     00000 1 RESTREG        DS       0              ; B(1) prm for display starts
+00321    0321     00000 1 NVWORD         DS       0              
+00322    0322     00000 1 MARXNV         DS       0              
+00323    0323     00000 1 NVSAVE         DS       0              
+                          ; (retain the order of CADRFLSH to FAILREG+2 for downlink purposes)
+00324    0324     00000 1 CADRFLSH       DS       0              ; B(1) tmp
+00325    0325     00000 1 CADRMARK       DS       0              ; B(1) tmp
+00326    0326     00000 1 TEMPFLSH       DS       0              ; B(1) tmp
+00327    0327     00000 1 FAILREG        DS       0              ; B(3) prm  3 alarm-abort user=S 2CADR
+00330    0330     00000 1                DS       0              
+00331    0331     00000 1                DS       0              
+                          
+                          
+                          ; (COLOSSUS, p. 73)
+                          ; verb 37 storage
+                          
+00332    0332     00000 1 MINDEX         DS       0              ; B(1) tmp index for major mode
+00333    0333     00000 1 MMNUMBER       DS       0              ; B(1) tmp major mode requested via V37
+                          
+                          ; pinball interrupt storage
+                          
+00334    0334     00000 1 DSPCNT         DS       0              ; B(1) prm DSPOUT counter
+                          
+                          ; pinball executive action
+                          
+00335    0335     00000 1 DSPCOUNT       DS       0              ; display position indicator
+00336    0336     00000 1 DECBRNCH       DS       0              ; octal=0, +dec=1, -dec=2
+00337    0337     00000 1 VERBREG        DS       0              ; verb code
+00340    0340     00000 1 NOUNREG        DS       0              ; noun code
+00341    0341     00000 1 XREG           DS       0              ; R1 input buffer
+00342    0342     00000 1 YREG           DS       0              ; R2 input buffer
+00343    0343     00000 1 ZREG           DS       0              ; R3 input buffer
+00344    0344     00000 1 XREGLP         DS       0              ; low part of XREG (for ded conv only)
+00345    0345     00000 1 YREGLP         DS       0              ; low part of YREG (for ded conv only)
+                          HITEMOUT       EQU      YREGLP         ; temp for display of HRS, MIN, SEC
+                          ;   must equal LOTEMOUT-1
+00346    0346     00000 1 ZREGLP         DS       0              ; low part of ZREG (for ded conv only)
+                          LOTEMOUT       EQU      ZREGLP         ; temp for display of HRS, MIN, SEC
+                          ;   must equal HITEMOUT+1
+                          ; (COLOSSUS, p. 74)
+                          
+00347    0347     00000 1 MODREG         DS       0              ; mode code
+00350    0350     00000 1 DSPLOCK        DS       0              ; keyboard/subroutine call interlock
+00351    0351     00000 1 REQRET         DS       0              ; return register for load
+00352    0352     00000 1 LOADSTAT       DS       0              ; status indicator for LOADTST
+00353    0353     00000 1 CLPASS         DS       0              ; pass indicator clear
+00354    0354     00000 1 NOUT           DS       0              ; activity counter for DSPTAB
+00355    0355     00000 1 NOUNCADR       DS       0              ; machine CADR for noun
+00356    0356     00000 1 MONSAVE        DS       0              ; N/V code for monitor (= MONSAVE1 - 1)
+00357    0357     00000 1 MONSAVE1       DS       0              ; NOUNCADR for monitor (MATBS) = MONSAVE + 1
+00360    0360     00000 1 MONSAVE2       DS       0              ; NVMONOPT options
+                          
+                          ; The 11 register table for the display panel (COLOSSUS, p.74, p.306)
+                          ; comment key =   RELADD: RELAYWD  BIT11  BITS10-6  BITS5-1
+                          
+                          DSPTAB         EQU      *              
+00361    0361     00000 1                DS       0              ; 0: 0001  -R3  R3D4( 1)  R3D5( 0)
+00362    0362     00000 1                DS       0              ; 1: 0010  +R3  R3D2( 3)  R3D3( 2)
+00363    0363     00000 1                DS       0              ; 2: 0011  ---  R2D5( 5)  R3D1( 4)	
+00364    0364     00000 1                DS       0              ; 3: 0100  -R2  R2D3( 7)  R2D4( 6)
+00365    0365     00000 1                DS       0              ; 4: 0101  +R2  R2D1(11)  R2D2(10)
+00366    0366     00000 1                DS       0              ; 5: 0110  -R1  R1D4(13)  R1D5(12)
+00367    0367     00000 1                DS       0              ; 6: 0111  +R1  R1D2(15)  R1D3(14)
+00370    0370     00000 1                DS       0              ; 7: 1000  ---  --------  R1D1(16)
+00371    0371     00000 1                DS       0              ; 8: 1001  ---  ND1 (21)  ND2 (20)
+00372    0372     00000 1                DS       0              ; 9: 1010  ---  VD1 (23)  VD2 (22)
+00373    0373     00000 1                DS       0              ; 10:1011  ---  MD1 (25)  MD1 (24)
+00374    0374     00000 1                DS       0              ; 11: C/S lights
+                          
+00375    0375     00000 1 NVQTEM         DS       0              ; NVSUB storage for calling address
+                          ; must = NVBNKTEM-1
+00376    0376     00000 1 NVBNKTEM       DS       0              ; NVSUB storage for calling bank
+                          ; must = NVQTEM+1
+00377    0377     00000 1 VERBSAVE       DS       0              ; needed for recycle
+00400    0400     00000 1 CADRSTOR       DS       0              ; ENDIDLE storage
+00401    0401     00000 1 DSPLIST        DS       0              ; waiting reg for DSP syst internal use
+00402    0402     00000 1 EXTVRACT       DS       0              ; extended verb activity interlock
+                          
+00403    0403     00000 1 DSPTEM1        DS       0              ; buffer storage area 1 (mostly for time)
+00404    0404     00000 1                DS       0              
+00405    0405     00000 1                DS       0              
+                          
+00406    0406     00000 1 DSPTEM2        DS       0              ; buffer storage area 2 (mostly for deg)
+00407    0407     00000 1                DS       0              
+00410    0410     00000 1                DS       0              
+                          
+                          DSPTEMX        EQU      DSPTEM2        ; B(2) S-S display buffer for external verbs
+                          NORMTEM1       EQU      DSPTEM1        ; B(3) DSP normal display registers
+                          
+                          ; display for extended verbs
+                          
+                          OPTIONX        EQU      DSPTEMX        ; B(2) extended verb option code N12(VB2)
+                          
+                          
+                          ; T4RUPT Erasable
+                          
+00411    0411     00000 1 DSRUPTSW       DS       0              ; (COLOSSUS, p. 78)
+00412    0412     00000 1 T4RET          DS       0              ; added, not part of COLOSSUS
+00413    0413     00000 1 DSPOUTRET      DS       0              ; added, not part of COLOSSUS
+00414    0414     00000 1 DK_IN_saveQ    DS       0              ; return for T4RUPT init
+                          
+                          
+                          ; Replacement for Block II LXCH instruction (not part of COLOSSUS)
+                          
+00415    0415     00000 1 LXCH_LPRET     DS       0              ; LP return address
+00416    0416     00000 1 LXCH_A         DS       0              ; save A
+                          
+                          
+                          ; Vars for DPTEST (not part of COLOSSUS)
+                          
+00417    0417     00000 1 DPTEST_A       DS       0              
+00420    0420     00000 1 DPTEST_Q       DS       0              
+                          
+                          
+                          ; Vars for REQDATX, REQDATY, REQDATZ (not part of COLOSSUS)
+                          
+00421    0421     00000 1 REQ_Q          DS       0              
+                          
+                          
+                          ; Vars for SETNCADR (not part of COLOSSUS)
+                          
+00422    0422     00000 1 SETNCADR_Q     DS       0              
+                          
+                          
+                          ; Vars for ALLDC_OC (not part of COLOSSUS)
+                          
+00423    0423     00000 1 ALLDC_OC_Q     DS       0              
+                          
+                          
+                          ; Vars for SFRUTMIX (not part of COLOSSUS)
+                          
+00424    0424     00000 1 SFRUTMIX_L     DS       0              
+                          
+                          
+                          ; Vars for SFCONUM (not part of COLOSSUS)
+                          
+00425    0425     00000 1 SFCONUM_L      DS       0              
+                          
+                          
+                          ; Vars for GTSFOUT, GTSFIN (not part of COLOSSUS)
+                          
+00426    0426     00000 1 GTSF_RET       DS       0              
+                          
+                          
+                          ; Vars for MATH LIB (not part of COLOSSUS)
+                          
+00427    0427     00000 1 SHORTMP_A      DS       0              
+00430    0430     00000 1 SHORTMP_OVFL   DS       0              
+00431    0431     00000 1 SHORTMP_OVFH   DS       0              
+                          
+00432    0432     00000 1 ADDRWD1        DS       0              ; for DMP, TPAGREE
+                          
+00433    0433     00000 1 MATH_Q         DS       0              
+                          
+                          
+                          ; KEYRUPT Eraseable
+                          
+00434    0434     00000 1 KEYRET         DS       0              ; added, not part of COLOSSUS
+00435    0435     00000 1 KEY_IN         DS       0              ; temp for keybd code
+                          
+00436    0436     00000 1 SAVEQ          DS       0              ; temp for return addr
+                          
+                          
+                          ; Bank intercommunication
+                          
+00437    0437     00000 1 BJBANK         DS       0              
+00440    0440     00000 1 BJRET          DS       0              
+                          
+00441    0441     00000 1 PJBANK         DS       0              
+00442    0442     00000 1 PJRET          DS       0              
+00443    0443     00000 1 PJA            DS       0              
+                          
+00444    0444     00000 1 BCBANK         DS       0              
+00445    0445     00000 1 BCRET          DS       0              
+00446    0446     00000 1 BCA            DS       0              
+                          
+00447    0447     00000 1 DCBANK         DS       0              
+00450    0450     00000 1 DCRET          DS       0              
+                          
+                          
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM -- ENTRY POINTS
+                          
+                          ; program (re)start
+                                         ORG      GOPROG         
+02000    2000 0  1,2056 0                TC       goMAIN         
+                          
+                          ; interrupt service entry points
+                                         ORG      T3RUPT         
+02004    2004 5  0,0026 0                TS       ARUPT          
+02005    2005 3  0,0001 0                XCH      Q              
+02006    2006 5  0,0027 1                TS       QRUPT          
+02007    2007 0  1,2223 0                TC       goT3           
+                          
+                                         ORG      ERRUPT         
+02010    2010 5  0,0026 0                TS       ARUPT          
+02011    2011 3  0,0001 0                XCH      Q              
+02012    2012 5  0,0027 1                TS       QRUPT          
+02013    2013 0  1,2223 0                TC       goER           
+                          
+                                         ORG      DSRUPT         
+02014    2014 5  0,0026 0                TS       ARUPT          
+02015    2015 3  0,0001 0                XCH      Q              
+02016    2016 5  0,0027 1                TS       QRUPT          
+02017    2017 0  1,2223 0                TC       goDS           
+                          
+                                         ORG      KEYRUPT        
+02020    2020 5  0,0026 0                TS       ARUPT          
+02021    2021 3  0,0001 0                XCH      Q              
+02022    2022 5  0,0027 1                TS       QRUPT          
+02023    2023 0  1,2223 0                TC       goKEY          
+                          
+                          
+                                         ORG      UPRUPT         
+02024    2024 5  0,0026 0                TS       ARUPT          
+02025    2025 3  0,0001 0                XCH      Q              
+02026    2026 5  0,0027 1                TS       QRUPT          
+02027    2027 0  1,2223 0                TC       goUP           
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; FIXED MEMORY CONSTANTS (shared)
+                          ;-------------------------------------------------------------------------- 
+                          
+02030    2030     00200 0 ofbit          DS       %200           ; OUT1, bit 8 initiates standby
+                          
+02031    2031     77777 0 NEG0           DS       -0             
+02032    2032     77775 1 NEG2           DS       -2             
+                          
+02033    2033     00000 1 ZERO           DS       0              
+02034    2034     00001 0 ONE            DS       1              
+02035    2035     00002 0 TWO            DS       2              
+02036    2036     00003 1 THREE          DS       3              
+02037    2037     00004 0 FOUR           DS       4              
+02040    2040     00005 1 FIVE           DS       5              
+02041    2041     00007 0 SEVEN          DS       7              
+02042    2042     00012 1 TEN            DS       10             
+                          
+02043    2043     00001 0 BIT1           DS       %1             
+02044    2044     00100 0 BIT7           DS       %00100         
+02045    2045     02000 0 BIT11          DS       %02000         
+02046    2046     04000 0 BIT12          DS       %04000         
+02047    2047     20000 0 BIT14          DS       %20000         
+02050    2050     40000 0 BIT15          DS       %40000         
+                          
+02051    2051     06000 1 bankAddr       DS       %6000          ; fixed-switchable addr range starts here
+02052    2052     01777 1 lowAddr        DS       %1777          ; mask for 10-bit address
+02053    2053     01400 1 OCT1400        DS       %1400          
+                          
+02054    2054     00013 0 NOUTCON        DS       11             
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM
+                          
+                          TESTVAL1       EQU      %45            
+                          TESTVAL2       EQU      %46            
+                          TESTVAL3       EQU      %47            
+                          TESTVAL4       EQU      %50            
+                          TESTVAL5       EQU      %51            
+                          TESTVAL6       EQU      %52            
+                          
+02055    2055     16000 0 B7ADDR         DS       B7FUNC         
+                          
+                          goMAIN         EQU      *              
+                          ; first, check for standby operation
+02056    2056 3  1,2030 0                XCH      ofbit          
+02057    2057 5  0,0011 1                TS       OUT1           
+                          
+                          
+02060    2060 3  1,2033 0                CAF      ZERO           
+02061    2061 6  0,0045 0                AD       TESTVAL1       
+02062    2062 6  1,2034 1                AD       ONE            
+02063    2063 5  0,0045 0                TS       TESTVAL1       
+                          
+02064    2064 0  1,2075 1                TC       BANKCALL       
+02065    2065     14000 1                DS       B6FUNC         
+                          
+02066    2066 3  1,2033 0                CAF      ZERO           
+02067    2067 6  0,0047 1                AD       TESTVAL3       
+02070    2070 6  1,2034 1                AD       ONE            
+02071    2071 5  0,0047 1                TS       TESTVAL3       
+                          
+02072    2072 3  1,2055 0                CAF      B7ADDR         
+02073    2073 0  1,2173 0                TC       BANKJUMP       
+                          
+02074    2074 0  1,2074 0 forever        TC       forever        ; finished, TC trap
+                          
+                          
+                                         INCL     bank_f.asm     
+                          ;========================================================================== 
+                          ; BANK INTERCOMMUNICATION (source code) memory segment (file:bank_f.asm)
+                          ; 
+                          ; Version:	1.0
+                          ; Author:	John Pultorak
+                          ; Date:		01/19/2002
+                          ; 
+                          ; PURPOSE:
+                          ; Contains bank intercommunication routines.
+                          ; 
+                          ;========================================================================== 
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; BANKCALL
+                          ; Do a bank jump to the location referenced by the 14-bit address referenced
+                          ; in Q. Does not affect register A (but assumes A does not contain an 
+                          ; overflow). Functionally identical to POSTJUMP.
+                          ; Usage:
+                          ;	TC	BANKCALL	; bank jump to CADR
+                          ;	DS	MYCADR		; the 14-bit address
+                          ; returns here.
+                          ; 
+                          ; 
+                          ; This source is missing from my incomplete listing of COLOSSUS. The
+                          ; implementation here is inferred from the usage in the COLOSSUS DSKY
+                          ; routines.
+                          ; 
+                          ; Inferred from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          BANKCALL       EQU      *              
+02075    2075 5  0,0446 1                TS       BCA            ; save A
+                          
+02076    2076 2  0,0001 1                INDEX    Q              ; load the CADR into A
+02077    2077 3  0,0000 1                CAF      0              
+02100    2100 5  0,0432 1                TS       ADDRWD1        ; save 14-bit destination address
+                          
+02101    2101 3  0,0001 0                XCH      Q              
+02102    2102 5  0,0445 1                TS       BCRET          ; save old return address-1
+                          
+02103    2103 3  0,0015 0                XCH      BANK           
+02104    2104 5  0,0444 0                TS       BCBANK         ; save old bank
+                          
+02105    2105 4  0,0432 0                CS       ADDRWD1        ; -(14bitAddr)+%6000
+02106    2106 6  1,2051 1                AD       bankAddr       
+02107    2107 1  0,0000 0                CCS      A              ; CADR is bank addressed?
+02110    2110 0  1,2121 1                TC       DOBANKCALL     ; >0 no, just run it, as is
+02111    2111 0  1,2113 0                TC       *+2            ; +0 yes
+02112    2112 0  1,2113 0                TC       *+1            ; <0 yes
+                          
+02113    2113 3  1,2033 0                CAF      ZERO           
+02114    2114 6  0,0432 1                AD       ADDRWD1        
+02115    2115 5  0,0015 0                TS       BANK           ; set the bank
+                          
+02116    2116 7  1,2052 0                MASK     lowAddr        ; get lowest 10-bits of address
+02117    2117 6  1,2051 1                AD       bankAddr       ; set bits 11,12 for fixed-switchable
+02120    2120 5  0,0432 1                TS       ADDRWD1        
+                          
+                          DOBANKCALL     EQU      *              
+02121    2121 3  0,0446 1                XCH      BCA            ; restore A
+02122    2122 2  0,0432 0                INDEX    ADDRWD1        ; apply indirect address to next instr.
+02123    2123 0  0,0000 1                TC       0              ; make the jump
+                          
+                          ; Jump returns here; restore the old bank and return
+                          
+02124    2124 5  0,0446 1                TS       BCA            ; save A
+02125    2125 3  0,0444 0                XCH      BCBANK         
+02126    2126 5  0,0015 0                TS       BANK           
+                          
+02127    2127 3  0,0445 1                XCH      BCRET          
+02130    2130 6  1,2034 1                AD       ONE            ; skip CADR
+02131    2131 5  0,0001 0                TS       Q              
+                          
+02132    2132 3  0,0446 1                XCH      BCA            ; restore A
+02133    2133 0  0,0000 0                RETURN                  
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; POSTJUMP
+                          ; Do a bank jump to the location referenced by the 14-bit address referenced
+                          ; in Q.  Does not affect register A (but assumes A does not contain an 
+                          ; overflow). Functionally identical to BANKCALL
+                          ; Usage:
+                          ;	TC	POSTJUMP	; bank jump to CADR
+                          ;	DS	MYCADR		; the 14-bit address
+                          ; returns here.
+                          ; 
+                          ; 
+                          ; This source is missing from my incomplete listing of COLOSSUS. The
+                          ; implementation here is inferred from the usage in the COLOSSUS DSKY
+                          ; routines.
+                          ; 
+                          ; Inferred from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          POSTJUMP       EQU      *              
+02134    2134 5  0,0443 1                TS       PJA            ; save A
+                          
+02135    2135 2  0,0001 1                INDEX    Q              ; load the CADR into A
+02136    2136 3  0,0000 1                CAF      0              
+02137    2137 5  0,0432 1                TS       ADDRWD1        ; save 14-bit destination address
+                          
+02140    2140 3  0,0001 0                XCH      Q              
+02141    2141 5  0,0442 0                TS       PJRET          ; save old return address-1
+                          
+02142    2142 3  0,0015 0                XCH      BANK           
+02143    2143 5  0,0441 0                TS       PJBANK         ; save old bank
+                          
+02144    2144 4  0,0432 0                CS       ADDRWD1        ; -(14bitAddr)+%6000
+02145    2145 6  1,2051 1                AD       bankAddr       
+02146    2146 1  0,0000 0                CCS      A              ; CADR is bank addressed?
+02147    2147 0  1,2160 1                TC       DOPOSTJUMP     ; >0 no, just run it, as is
+02150    2150 0  1,2152 0                TC       *+2            ; +0 yes
+02151    2151 0  1,2152 0                TC       *+1            ; <0 yes
+                          
+02152    2152 3  1,2033 0                CAF      ZERO           
+02153    2153 6  0,0432 1                AD       ADDRWD1        
+02154    2154 5  0,0015 0                TS       BANK           ; set the bank
+                          
+02155    2155 7  1,2052 0                MASK     lowAddr        ; get lowest 10-bits of address
+02156    2156 6  1,2051 1                AD       bankAddr       ; set bits 11,12 for fixed-switchable
+02157    2157 5  0,0432 1                TS       ADDRWD1        
+                          
+                          DOPOSTJUMP     EQU      *              
+02160    2160 3  0,0443 1                XCH      PJA            ; restore A
+02161    2161 2  0,0432 0                INDEX    ADDRWD1        ; apply indirect address to next instr.
+02162    2162 0  0,0000 1                TC       0              ; make the jump
+                          
+                          ; Jump returns here; restore the old bank and return
+                          
+02163    2163 5  0,0443 1                TS       PJA            ; save A
+                          
+02164    2164 3  0,0441 0                XCH      PJBANK         
+02165    2165 5  0,0015 0                TS       BANK           
+                          
+02166    2166 3  0,0442 0                XCH      PJRET          
+02167    2167 6  1,2034 1                AD       ONE            ; skip CADR
+02170    2170 5  0,0001 0                TS       Q              
+                          
+02171    2171 3  0,0443 1                XCH      PJA            ; restore A
+02172    2172 0  0,0000 0                RETURN                  
+                          
+                          
+                          ;-------------------------------------------------------------------------- 
+                          ; BANKJUMP
+                          ; Do a bank jump to the location referenced by the 14-bit address in A.
+                          ; Usage:
+                          ; CADRSTOR	DS	MYCADR
+                          ; 
+                          ;		CAF	CADRSTOR	; load the 14-bit address
+                          ;		TC	BANKJUMP	; bank jump to CADR
+                          ; returns here.
+                          ; 
+                          ; This source is missing from my incomplete listing of COLOSSUS. The
+                          ; implementation here is inferred from the usage in the COLOSSUS DSKY
+                          ; routines.
+                          ; 
+                          ; Inferred from the AGC Block II COLOSSUS rev 249 assembly listing, 
+                          ; Oct 28, 1968.
+                          ;-------------------------------------------------------------------------- 
+                          
+                          BANKJUMP       EQU      *              
+02173    2173 5  0,0432 1                TS       ADDRWD1        ; save 14-bit destination address
+                          
+02174    2174 3  0,0001 0                XCH      Q              
+02175    2175 5  0,0440 1                TS       BJRET          ; save old return address
+                          
+02176    2176 3  0,0015 0                XCH      BANK           
+02177    2177 5  0,0437 1                TS       BJBANK         ; save old bank
+                          
+02200    2200 4  0,0432 0                CS       ADDRWD1        ; -(14bitAddr)+%6000
+02201    2201 6  1,2051 1                AD       bankAddr       
+02202    2202 1  0,0000 0                CCS      A              ; CADR is bank addressed?
+02203    2203 0  1,2214 1                TC       DOBANKJUMP     ; >0 no, just run it, as is
+02204    2204 0  1,2206 1                TC       *+2            ; +0 yes
+02205    2205 0  1,2206 1                TC       *+1            ; <0 yes
+                          
+02206    2206 3  1,2033 0                CAF      ZERO           
+02207    2207 6  0,0432 1                AD       ADDRWD1        
+02210    2210 5  0,0015 0                TS       BANK           ; set the bank
+                          
+02211    2211 7  1,2052 0                MASK     lowAddr        ; get lowest 10-bits of address
+02212    2212 6  1,2051 1                AD       bankAddr       ; set bits 11,12 for fixed-switchable
+02213    2213 5  0,0432 1                TS       ADDRWD1        
+                          
+                          DOBANKJUMP     EQU      *              
+02214    2214 2  0,0432 0                INDEX    ADDRWD1        ; apply indirect address to next instr.
+02215    2215 0  0,0000 1                TC       0              ; make the jump
+                          
+                          ; Jump returns here; restore the old bank and return
+                          
+02216    2216 3  0,0437 1                XCH      BJBANK         
+02217    2217 5  0,0015 0                TS       BANK           
+                          
+02220    2220 3  0,0440 1                XCH      BJRET          
+02221    2221 5  0,0001 0                TS       Q              
+02222    2222 0  0,0000 0                RETURN                  
+                          
+                          
+                          ; ----------------------------------------------
+                          ; INTERRUPT SERVICE ROUTINE
+                          
+                          ireg           EQU      %43            ; reg incremented upon interrupt
+                          
+                          goT3           EQU      *              
+                          goER           EQU      *              
+                          goDS           EQU      *              
+                          goKEY          EQU      *              
+                          goUP           EQU      *              
+                          
+                          endRUPT        EQU      *              
+02223    2223 3  0,0027 1                XCH      QRUPT          ; restore Q
+02224    2224 5  0,0001 0                TS       Q              
+02225    2225 3  0,0026 0                XCH      ARUPT          ; restore A
+02226    2226 2  0,0000 1                RESUME                  ; finished, go back
+                          
+                          
+                          
+                          
+                                         ORG      BANK6          
+14000  6,0000 3  1,2033 0 B6FUNC         CAF      ZERO           
+14001  6,0001 6  0,0046 0                AD       TESTVAL2       
+14002  6,0002 6  1,2034 1                AD       ONE            
+14003  6,0003 5  0,0046 0                TS       TESTVAL2       
+14004  6,0004 0  0,0001 0                TC       Q              
+14005  6,0005 0  1,2074 0                TC       forever        
+                          
+                                         ORG      BANK7          
+16000  7,0000 3  1,2033 0 B7FUNC         CAF      ZERO           
+16001  7,0001 6  0,0050 1                AD       TESTVAL4       
+16002  7,0002 6  1,2034 1                AD       ONE            
+16003  7,0003 5  0,0050 1                TS       TESTVAL4       
+                          
+16004  7,0004 0  1,2075 1                TC       BANKCALL       
+16005  7,0005     20000 0                DS       B10FUNC        
+                          
+16006  7,0006 3  1,2033 0                CAF      ZERO           
+16007  7,0007 6  0,0052 0                AD       TESTVAL6       
+16010  7,0010 6  1,2034 1                AD       ONE            
+16011  7,0011 5  0,0052 0                TS       TESTVAL6       
+                          
+16012  7,0012 0  1,2074 0                TC       forever        
+                          
+                                         ORG      BANK10         
+20000 10,0000 3  1,2033 0 B10FUNC        CAF      ZERO           
+20001 10,0001 6  0,0051 0                AD       TESTVAL5       
+20002 10,0002 6  1,2034 1                AD       ONE            
+20003 10,0003 5  0,0051 0                TS       TESTVAL5       
+20004 10,0004 0  0,0001 0                TC       Q              
+20005 10,0005 0  1,2074 0                TC       forever        
+
+Assembly complete. Errors = 0
+
+Symbol table:
+EXTENDER       005777   FLAGWRD5       000100   ITEMP1         000101   
+WAITEXIT       000101   EXECTEM1       000101   ITEMP2         000102   
+WAITBANK       000102   EXECTEM2       000102   ITEMP3         000103   
+RUPTSTOR       000103   WAITADR        000103   NEWPRIO        000103   
+ITEMP4         000104   LOCCTR         000104   WAITTEMP       000104   
+ITEMP5         000105   NEWLOC         000105   ITEMP6         000106   
+NEWLOCP1       000106   NEWJOB         000107   RUPTREG1       000110   
+RUPTREG2       000111   RUPTREG3       000112   RUPTREG4       000113   
+KEYTEMP1       000113   DSRUPTEM       000113   STATE          000114   
+FLAGFILL       000130   EMDOT          000130   STATEXIT       000132   
+INTB15P        000134   DSEXIT         000134   EXITEM         000134   
+BLANKRET       000134   INTBIT15       000135   WRDRET         000135   
+WDRET          000135   DECRET         000135   _2122REG       000135   
+ADDRWD         000136   POLISH         000137   UPDATRET       000137   
+CHAR           000137   ERCNT          000137   DECOUNT        000137   
+FIXLOC         000140   OVFIND         000141   VBUF           000142   
+SGNON          000142   NOUNTEM        000142   DISTEM         000142   
+DECTEM         000142   SGNOFF         000143   MVTEMP         000143   
+SFTEMP1        000143   HITEMIN        000143   CODE           000144   
+SFTEMP2        000144   LOWTEMIN       000144   MIXTEMP        000145   
+SIGNRET        000145   BUF            000150   BUF2           000153   
+INDEXLOC       000150   SWWORD         000150   SWBIT          000151   
+MPTEMP         000155   DMPNTEMP       000155   DOTINC         000156   
+DVSIGN         000156   ESCAPE         000156   ENTRET         000156   
+DOTRET         000157   DVNORMCT       000157   ESCAPE2        000157   
+WDCNT          000157   INREL          000157   MATINC         000160   
+MAXDVSW        000160   POLYCNT        000160   DSPMMTEM       000160   
+MIXBR          000160   TEM1           000161   POLYRET        000161   
+DSREL          000161   TEM2           000162   DSMAG          000162   
+IDADDTEM       000162   TEM3           000163   COUNT          000163   
+TEM4           000164   LSTPTR         000164   RELRET         000164   
+FREERET        000164   DSPWDRET       000164   SEPSCRET       000164   
+SEPMNRET       000164   TEM5           000165   NOUNADD        000165   
+NNADTEM        000166   NNTYPTEM       000167   IDAD1TEM       000170   
+IDAD2TEM       000171   IDAD3TEM       000172   RUTMXTEM       000173   
+DEXDEX         000162   DEX1           000163   DEX2           000164   
+RTNSAVER       000165   TERM1TMP       000153   MPAC           000174   
+MODE           000203   LOC            000204   BANKSET        000205   
+PUSHLOC        000206   PRIORITY       000207   RESTREG        000320   
+NVWORD         000321   MARXNV         000322   NVSAVE         000323   
+CADRFLSH       000324   CADRMARK       000325   TEMPFLSH       000326   
+FAILREG        000327   MINDEX         000332   MMNUMBER       000333   
+DSPCNT         000334   DSPCOUNT       000335   DECBRNCH       000336   
+VERBREG        000337   NOUNREG        000340   XREG           000341   
+YREG           000342   ZREG           000343   XREGLP         000344   
+YREGLP         000345   HITEMOUT       000345   ZREGLP         000346   
+LOTEMOUT       000346   MODREG         000347   DSPLOCK        000350   
+REQRET         000351   LOADSTAT       000352   CLPASS         000353   
+NOUT           000354   NOUNCADR       000355   MONSAVE        000356   
+MONSAVE1       000357   MONSAVE2       000360   DSPTAB         000361   
+NVQTEM         000375   NVBNKTEM       000376   VERBSAVE       000377   
+CADRSTOR       000400   DSPLIST        000401   EXTVRACT       000402   
+DSPTEM1        000403   DSPTEM2        000406   DSPTEMX        000406   
+NORMTEM1       000403   OPTIONX        000406   DSRUPTSW       000411   
+T4RET          000412   DSPOUTRET      000413   DK_IN_saveQ    000414   
+LXCH_LPRET     000415   LXCH_A         000416   DPTEST_A       000417   
+DPTEST_Q       000420   REQ_Q          000421   SETNCADR_Q     000422   
+ALLDC_OC_Q     000423   SFRUTMIX_L     000424   SFCONUM_L      000425   
+GTSF_RET       000426   SHORTMP_A      000427   SHORTMP_OVFL   000430   
+SHORTMP_OVFH   000431   ADDRWD1        000432   MATH_Q         000433   
+KEYRET         000434   KEY_IN         000435   SAVEQ          000436   
+BJBANK         000437   BJRET          000440   PJBANK         000441   
+PJRET          000442   PJA            000443   BCBANK         000444   
+BCRET          000445   BCA            000446   DCBANK         000447   
+DCRET          000450   GOPROG         002000   T3RUPT         002004   
+ERRUPT         002010   DSRUPT         002014   KEYRUPT        002020   
+UPRUPT         002024   ofbit          002030   NEG0           002031   
+NEG2           002032   ZERO           002033   ONE            002034   
+TWO            002035   THREE          002036   FOUR           002037   
+FIVE           002040   SEVEN          002041   TEN            002042   
+BIT1           002043   BIT7           002044   BIT11          002045   
+BIT12          002046   BIT14          002047   BIT15          002050   
+bankAddr       002051   lowAddr        002052   OCT1400        002053   
+NOUTCON        002054   TESTVAL1       000045   TESTVAL2       000046   
+TESTVAL3       000047   TESTVAL4       000050   TESTVAL5       000051   
+TESTVAL6       000052   B7ADDR         002055   goMAIN         002056   
+forever        002074   BANKCALL       002075   DOBANKCALL     002121   
+POSTJUMP       002134   DOPOSTJUMP     002160   BANKJUMP       002173   
+DOBANKJUMP     002214   ireg           000043   goT3           002223   
+goER           002223   goDS           002223   goKEY          002223   
+goUP           002223   endRUPT        002223   BANK6          014000   
+B6FUNC         014000   BANK7          016000   B7FUNC         016000   
+BANK10         020000   B10FUNC        020000   ARUPT          000026   
+Q              000001   QRUPT          000027   OUT1           000011   
+BANK           000015   A              000000   

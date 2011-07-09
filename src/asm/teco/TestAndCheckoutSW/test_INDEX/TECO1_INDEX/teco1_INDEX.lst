@@ -1,0 +1,16 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+
+Assembly complete. Errors = 0
+
+Symbol table:
+mainCtr        000047   T3Ctr          000050   DSCtr          000051   
+KYCtr          000052   GOPROG         002000   T3RUPT         002004   
+DSRUPT         002014   KEYRUPT        002020   ZERO           002024   
+ONE            002025   AD25252        002026   AD52525        002027   
+goMAIN         002030   infLoop        002036   goT3           002064   
+goDS           002071   goKEY          002076   endRUPT        002103   
+ARUPT          000026   Q              000001   QRUPT          000027   

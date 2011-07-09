@@ -1,0 +1,200 @@
+Block I Apollo Guidance Computer (AGC4) assembler version 1.6
+
+First pass: generate symbol table.
+Second pass: generate object code.
+
+                          ;------------------------------------------------------------------------- 
+                          ; TECO2_MP (file:teco2_MP.asm)
+                          ; PURPOSE:
+                          ; Test and checkout program for the Block 1 Apollo Guidance Computer.
+                          ; Tests extracode instructions: MP
+                          ; 
+                          ; OPERATION:
+                          ; Enters an infinite loop at the end of the test. The A register contains 
+                          ; the code for the test that failed, or the PASS code if all tests 
+                          ; succeeded. See test codes below.
+                          ;------------------------------------------------------------------------- 
+                          START          EQU      %00            
+                          MPtst          EQU      %01            ; MP check failed
+                          PASS           EQU      %12345         ; PASSED all checks
+                          ; ----------------------------------------------
+                                         ORG      EXTENDER       
+05777    5777     47777 0                DS       %47777         ; needed for EXTEND
+                          OVFCNTR        EQU      %00034         ; overflow counter
+                          
+                          ; ----------------------------------------------
+                          ; ERASEABLE MEMORY -- DATA SEGMENT
+                          ; ----------------------------------------------
+                                         ORG      %100           ; start of data area
+00100    0100     00000 1 curtest        DS       START          ; current test
+00101    0101     00000 1 savQ           DS       %0             
+00102    0102     00000 1 MPindex        DS       %0             ; MP test
+00103    0103     00000 1 MPXTND         DS       %0             ; indexed extend
+                          
+                          ; ----------------------------------------------
+                          ; MAIN PROGRAM ENTRY POINT
+                          ; ----------------------------------------------
+                                         ORG      GOPROG         
+                          goMAIN         EQU      *              
+02000    2000 2  0,0000 0                INHINT                  ; disable interrupts
+02001    2001 0  1,2011 0                TCR      begin          
+02002    2002 0  1,2020 1                TCR      chkMP          ; Test extracode instructions.
+02003    2003 0  1,2015 1                TCR      finish         ; Passed all tests.
+                          end            EQU      *              
+02004    2004 0  1,2004 1                TC       end            ; finished, TC trap
+                          
+                          fail           EQU      *              
+02005    2005 3  0,0100 0                XCH      curtest        ; load last passed test into A
+02006    2006 5  0,0100 0                TS       curtest        
+                          failend        EQU      *              
+02007    2007 0  1,2007 1                TC       failend        ; finished, TC trap
+                          
+                          ; ----------------------------------------------
+                          ; INITIALIZE FOR START OF TESTING
+                          ; ----------------------------------------------
+02010    2010     00000 1 STRTcode       DS       START          
+                          begin          EQU      *              
+02011    2011 3  1,2010 1                XCH      STRTcode       
+02012    2012 5  0,0100 0                TS       curtest        ; set current test code to START
+02013    2013 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; PASSED ALL TESTS!
+                          ; ----------------------------------------------
+02014    2014     12345 0 PASScode       DS       PASS           
+                          finish         EQU      *              
+02015    2015 3  1,2014 0                CAF      PASScode       
+02016    2016 5  0,0100 0                TS       curtest        ; set current test code to PASS
+02017    2017 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+                          ; TEST MP INSTRUCTION SUBROUTINE
+                          ; L:	MP	K
+                          ; Verifies the following
+                          ; - Set C(A,LP) = b(A) * C(K)
+                          ; - Take next instruction from L+1
+                          ; ----------------------------------------------
+                          chkMP          EQU      *              
+02020    2020 3  0,0001 0                XCH      Q              
+02021    2021 5  0,0101 1                TS       savQ           ; save return address
+02022    2022 3  1,2060 0                CAF      MPcode         
+02023    2023 5  0,0100 0                TS       curtest        ; set current test code to this test
+                          
+                          ; ----------------------------------------------
+                          ; Decrementing loop
+                          ;	- always executes at least once (tests at end of loop)		
+                          ;	- loops 'MPstart+1' times; decrements MPindex
+                          ; ----------------------------------------------
+02024    2024 3  1,2061 1                XCH      MPstart        ; initialize loop counter
+                          
+                          ;------------------------------ 
+                          ; MP check starts here
+                          ; uses MPindex to access test values
+                          ; ----------------------------------------------
+                          MPloop         EQU      *              
+02025    2025 5  0,0102 1                TS       MPindex        ; save new index
+02026    2026 3  2,5777 0                CAF      EXTENDER       
+02027    2027 6  0,0102 1                AD       MPindex        
+02030    2030 5  0,0103 0                TS       MPXTND         
+                          
+02031    2031 2  0,0102 0                INDEX    MPindex        
+02032    2032 3  1,2062 1                CAF      mp1            
+02033    2033 2  0,0103 1                INDEX    MPXTND         ; EXTEND using MPindex
+02034    2034 4  1,2072 1                MP       mp2            
+                          
+                          ; verify C(A)
+02035    2035 4  0,0000 0                COM                     ; get -A
+02036    2036 2  0,0102 0                INDEX    MPindex        
+02037    2037 6  1,2102 0                AD       MPchkA         ; put (-A) + expected value in A
+02040    2040 1  0,0000 0                CCS      A              ; compare
+02041    2041 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02042    2042 0  1,2005 0                TC       fail           ; +0
+02043    2043 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; verify C(LP)
+02044    2044 4  0,0003 0                CS       LP             ; get -A
+02045    2045 2  0,0102 0                INDEX    MPindex        
+02046    2046 6  1,2112 1                AD       MPchkLP        ; put (-A) + expected value in A
+02047    2047 1  0,0000 0                CCS      A              ; compare
+02050    2050 0  1,2005 0                TC       fail           ; >0 (A < expected value)
+02051    2051 0  1,2005 0                TC       fail           ; +0
+02052    2052 0  1,2005 0                TC       fail           ; <0 (A > expected value)
+                          
+                          ; ----------------------------------------------
+                          ; end of MP check
+                          ; ----------------------------------------------
+02053    2053 1  0,0102 0                CCS      MPindex        ; done?
+02054    2054 0  1,2025 1                TC       MPloop         ; not yet, do next check
+02055    2055 3  0,0101 1                XCH      savQ           
+02056    2056 5  0,0001 0                TS       Q              ; restore return address
+02057    2057 0  0,0000 0                RETURN                  
+                          
+                          ; ----------------------------------------------
+02060    2060     00001 0 MPcode         DS       MPtst          ; code for this test
+02061    2061     00007 0 MPstart        DS       7              ; loop MPstart+1 times 
+                          
+                          ; C(A) test values
+                          mp1            EQU      *              
+                          ; check boundary conditions
+02062    2062     37777 1                DS       %37777         ; check #00 (+16383 * +16383)
+02063    2063     37777 1                DS       %37777         ; check #01 (+16383 * -16383)
+02064    2064     40000 0                DS       %40000         ; check #02 (-16383 * +16383)
+02065    2065     40000 0                DS       %40000         ; check #03 (-16383 * -16383)
+02066    2066     00000 1                DS       %00000         ; check #04 (+0 * +0)
+02067    2067     00000 1                DS       %00000         ; check #05 (+0 * -0)
+02070    2070     77777 0                DS       %77777         ; check #06 (-0 * +0)
+02071    2071     77777 0                DS       %77777         ; check #07 (-0 * -0)
+                          
+                          ; C(K) test values
+                          mp2            EQU      *              
+                          ; check boundary conditions
+02072    2072     37777 1                DS       %37777         ; check #00 (+16383 * +16383)
+02073    2073     40000 0                DS       %40000         ; check #01 (+16383 * -16383)
+02074    2074     37777 1                DS       %37777         ; check #02 (-16383 * +16383)
+02075    2075     40000 0                DS       %40000         ; check #03 (-16383 * -16383)
+02076    2076     00000 1                DS       %00000         ; check #04 (+0 * +0)
+02077    2077     77777 0                DS       %77777         ; check #05 (+0 * -0)
+02100    2100     00000 1                DS       %00000         ; check #06 (-0 * +0)
+02101    2101     77777 0                DS       %77777         ; check #07 (-0 * -0)
+                          
+                          ; A = upper product
+                          MPchkA         EQU      *              
+                          ; check boundary conditions
+02102    2102     37776 0                DS       %37776         ; check #00
+02103    2103     40001 1                DS       %40001         ; check #01
+02104    2104     40001 1                DS       %40001         ; check #02
+02105    2105     37776 0                DS       %37776         ; check #03
+02106    2106     00000 1                DS       %00000         ; check #04
+02107    2107     77777 0                DS       %77777         ; check #05
+02110    2110     77777 0                DS       %77777         ; check #06
+02111    2111     00000 1                DS       %00000         ; check #07
+                          
+                          ; LP = lower product
+                          MPchkLP        EQU      *              
+                          ; check boundary conditions
+02112    2112     00001 0                DS       %00001         ; check #00
+02113    2113     77776 1                DS       %77776         ; check #01
+02114    2114     77776 1                DS       %77776         ; check #02
+02115    2115     00001 0                DS       %00001         ; check #03
+02116    2116     00000 1                DS       %00000         ; check #04
+02117    2117     77777 0                DS       %77777         ; check #05
+02120    2120     77777 0                DS       %77777         ; check #06
+02121    2121     00000 1                DS       %00000         ; check #07
+                          
+                          ;------------------------------------------------------------------------- 
+                          ; END OF PROGRAM
+                          ;------------------------------------------------------------------------- 
+
+Assembly complete. Errors = 0
+
+Symbol table:
+START          000000   MPtst          000001   PASS           012345   
+EXTENDER       005777   OVFCNTR        000034   curtest        000100   
+savQ           000101   MPindex        000102   MPXTND         000103   
+GOPROG         002000   goMAIN         002000   end            002004   
+fail           002005   failend        002007   STRTcode       002010   
+begin          002011   PASScode       002014   finish         002015   
+chkMP          002020   MPloop         002025   MPcode         002060   
+MPstart        002061   mp1            002062   mp2            002072   
+MPchkA         002102   MPchkLP        002112   Q              000001   
+A              000000   LP             000003   
